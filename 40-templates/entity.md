@@ -1,0 +1,35 @@
+---
+type: entity
+canonical: ""           # 정본명 — 첫 글자가 샤드를 결정 (라우팅 키)
+aka: []                 # 다른 표기 (aliases.md에도 등재)
+topic: ""
+summary: "1~2문장 정의 + 키워드 5~10개"   # indexes/{type} 줄로 재사용됨
+tags: []
+sources: []             # 뒷받침 raw/소스 id
+tier: reviewed          # reviewed | auto
+provenance: extracted   # extracted | inferred | ambiguous | web-enriched
+status: active          # active | stub | deprecated
+updated: YYYY-MM-DD
+---
+
+# {엔티티명}
+
+**정의:** 한 줄 BLUF — 이 엔티티가 무엇인지 한 문장으로.
+
+## 요약
+2~4문장 합성. 여러 소스를 녹인 현재 시점의 결론.
+
+## Key facts
+- 사실 1 [[sources/...]]
+- 사실 2 [[sources/...]]
+
+## 관계
+- [[...]] — 관계 서술 (예: ~의 일부, ~를 개발함)
+- [[...]] — 관계 서술
+
+## Open questions / 모순
+_(없으면 비워둠. 있으면:)_
+> ⚠️ Contradiction: [[sources/A]]는 X, [[sources/B]]는 Y. 미해결.
+
+## Sources
+- [[sources/...]]
