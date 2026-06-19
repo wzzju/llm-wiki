@@ -31,9 +31,12 @@ if [ "${wiki_count:-0}" -eq 0 ] && [ "${inbox_count:-0}" -eq 0 ]; then
 1. 소스 파일을 `10-inbox/`에 넣습니다 — `.md`/`.txt`/`.pdf`, 파일명 권장 `YYYY-MM-DD-제목-슬러그.md`.
    - 웹 기사면 본문을 복사해 `.md`로 저장하고, 출처 URL을 파일 맨 위에 적습니다.
    - 이미지·figure는 `20-raw/assets/`에 직접 둡니다.
+   - **docx·pptx·xlsx·PDF**는 `/ingest`가 `markitdown`으로 자동 변환합니다 (`pip install 'markitdown[all]'` 한 번 설치).
 2. (선택) URL/파일 자동 수집은 `/ingest <소스>` → `10-inbox/`에 저장만.
 3. `/compile` 실행 → inbox 소스를 읽어 `30-wiki/`에 소스요약·엔티티·개념으로 합성하고, 라우터(index)·타입 인덱스·aliases·overview를 갱신한 뒤 원본을 `20-raw/`로 이동합니다.
 4. `/query`로 질문(2단 라우팅·인용), `/lint`로 모순·고아·인덱스 정합 점검.
+
+**고급 — 복잡한 문서 품질:** 표·레이아웃이 많은 PDF/PPT는 LlamaParse(https://cloud.llamaindex.ai)로 변환 품질을 높일 수 있습니다 — 무료 크레딧이 있고 초과 시 유료입니다. `LLAMA_CLOUD_API_KEY`를 설정해두면 `/ingest`가 복잡한 문서에서 자동 활용하고, 없으면 로컬 markitdown으로 폴백합니다.
 
 **핵심**: `10-inbox/`에 파일이 남아 있으면 = 아직 컴파일 안 한 소스입니다.
 

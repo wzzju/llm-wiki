@@ -22,6 +22,14 @@ description: "새 자료 수집, 자료 넣기, URL/파일/텍스트를 위키�
 - **파일 경로** → 읽어서 가져옴. 이미지·PDF 첨부는 `20-raw/assets/`에 저장(영구 자산).
 - **텍스트** → 그대로.
 
+### Step 1.5: 포맷 변환 (바이너리 → 마크다운)
+docx·pptx·xlsx·복잡 PDF는 Claude가 직접 못 읽으므로 마크다운으로 변환해 inbox에 넣는다 (원본 바이너리는 `20-raw/assets/`에 보관). 확장자별 라우팅 — 정본: `conventions.md §12`:
+- `.md`/`.txt`/`.html` → 그대로.
+- `.docx`/`.pptx`/`.xlsx` → `markitdown <파일> > 10-inbox/{slug}.md` (1순위, 로컬·무료). 없으면 `pip install 'markitdown[all]'` 안내.
+- `.pdf` → 텍스트형은 Claude가 직접 Read, 스캔/복잡 표는 markitdown.
+- 표·레이아웃 복잡 + `LLAMA_CLOUD_API_KEY` 있음 → LlamaParse로 고품질 변환(폴백). 키 없으면 markitdown으로.
+- 어떤 도구도 없으면 막지 말고 설치 안내 또는 "텍스트로 붙여달라".
+
 ### Step 2: inbox에 저장
 - `10-inbox/{YYYY-MM-DD}-{slug}.md`에 **새 파일명**으로 저장한다.
 - 같은 자료의 갱신이면 `-v2`처럼 새 이름으로 (덮어쓰기 금지).

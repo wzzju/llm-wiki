@@ -207,12 +207,25 @@ compile이 새 엔티티를 만들 때 별칭이 보이면 여기에 추가한�
 
 ---
 
-## 12. 이미지·PDF 처리
+## 12. 파일 변환·이미지·PDF
 
+### 문서 변환 (바이너리 → 마크다운)
+Claude는 docx·pptx·xlsx 같은 바이너리를 직접 못 읽는다. `/ingest`가 확장자를 보고 마크다운으로 변환한 뒤 inbox에 넣는다. **원본 바이너리는 `20-raw/assets/`에 보관**(출처 보존), 변환된 `.md`만 compile 대상.
+
+| 입력 | 1순위 (로컬·무료) | 폴백 (opt-in) |
+|------|-------------------|----------------|
+| `.md`/`.txt`/`.html` | 그대로 | — |
+| `.pdf` | Claude PDF Read(텍스트형) / `markitdown` | LlamaParse (스캔·복잡 표) |
+| `.docx`/`.pptx`/`.xlsx` | `markitdown <파일>` | LlamaParse (표 많은 문서) |
+
+- **markitdown = 주력.** `pip install 'markitdown[all]'` 하나로 Office·PDF·이미지를 마크다운으로. 로컬·무료 → 자족 원칙 유지.
+- **LlamaParse = 순수 opt-in.** `LLAMA_CLOUD_API_KEY`가 있을 때만 발동(표·레이아웃 복잡 문서 품질↑). 무료 크레딧 한도 내 사용, 초과 시 유료. **키 없으면 조용히 로컬(markitdown)로 폴백** — 자족성 안 깨짐.
+- 어떤 도구도 없으면 막지 말고 설치 안내 또는 "텍스트로 붙여달라".
+
+### 이미지·PDF
 - 원본은 `20-raw/assets/`에 로컬 저장 (URL은 깨질 수 있으므로 다운로드 권장).
 - 위키 페이지에서 이미지 참조: `![설명](../../20-raw/assets/figure.png)` + 캡션 텍스트.
 - **2단계 읽기:** LLM은 마크다운 인라인 이미지를 한 번에 못 읽으므로, 텍스트를 먼저 읽고 필요한 이미지를 별도로 Read 한다.
-- PDF는 텍스트 추출 후 소스 요약에 반영, 원본 PDF는 assets에 보관.
 
 ---
 
