@@ -1,35 +1,35 @@
 ---
 type: entity
-canonical: ""           # 정본명 — 첫 글자가 샤드를 결정 (라우팅 키)
-aka: []                 # 다른 표기 (aliases.md에도 등재)
+canonical: ""           # 规范名 — 首字母决定分片 (路由键)
+aka: []                 # 其他写法 (也在 aliases.md 中登记)
 topic: ""
-summary: "1~2문장 정의 + 키워드 5~10개"   # indexes/{type} 줄로 재사용됨
+summary: "1~2句定义 + 5~10个关键词"   # 复用为 indexes/{type} 的条目
 tags: []
-sources: []             # 뒷받침 raw/소스 id
+sources: []             # 支撑的 raw/源 id
 tier: reviewed          # reviewed | auto
 provenance: extracted   # extracted | inferred | ambiguous | web-enriched
 status: active          # active | stub | deprecated
 updated: YYYY-MM-DD
 ---
 
-# {엔티티명}
+# {实体名}
 
-**정의:** 한 줄 BLUF — 이 엔티티가 무엇인지 한 문장으로.
+**定义:** 一行 BLUF — 用一句话说明这个实体是什么。
 
-## 요약
-2~4문장 합성. 여러 소스를 녹인 현재 시점의 결론.
+## 摘要
+2~4句合成。融合多个源的当前时点结论。
 
 ## Key facts
-- 사실 1 [[sources/...]]
-- 사실 2 [[sources/...]]
+- 事实 1 [[sources/...]]
+- 事实 2 [[sources/...]]
 
-## 관계
-- [[...]] — 관계 서술 (예: ~의 일부, ~를 개발함)
-- [[...]] — 관계 서술
+## 关系
+- [[...]] — 关系描述 (例如: ~的一部分, 开发了~)
+- [[...]] — 关系描述
 
-## Open questions / 모순
-_(없으면 비워둠. 있으면:)_
-> ⚠️ Contradiction: [[sources/A]]는 X, [[sources/B]]는 Y. 미해결.
+## Open questions / 矛盾
+_(若无则留空。若有:)_
+> ⚠️ Contradiction: [[sources/A]] 为 X, [[sources/B]] 为 Y。未解决。
 
 ## Sources
 - [[sources/...]]

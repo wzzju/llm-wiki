@@ -1,9 +1,9 @@
 ---
 type: source
 title: ""
-source_file: 20-raw/        # compile이 raw로 이동한 뒤의 최종 경로
+source_file: 20-raw/        # compile 移动到 raw 后的最终路径
 topic: ""
-summary: "1~2문장 + 검색 키워드 5~10개"   # sources/index 줄로 재사용됨
+summary: "1~2句 + 5~10个检索关键词"   # 复用为 sources/index 的条目
 ingested: YYYY-MM-DD
 author: ""
 url: ""
@@ -11,19 +11,19 @@ tags: []
 provenance: extracted       # extracted | inferred | ambiguous | web-enriched
 ---
 
-# {소스 원제목}
+# {源原标题}
 
-**TL;DR:** 한 문단 핵심 요약. (frontmatter `summary`가 `sources/index` 줄로 재사용됩니다.)
+**TL;DR:** 一段核心摘要。(frontmatter `summary` 会被复用为 `sources/index` 的条目。)
 
 ## Key claims
-- 핵심 주장 1
-- 핵심 주장 2
+- 核心主张 1
+- 核心主张 2
 
 ## Entities & concepts
-이 소스가 다루는 위키 페이지: [[entities/...]], [[concepts/...]]
+本源涉及的维基页面: [[entities/...]], [[concepts/...]]
 
 ## How this updated the wiki
-- 강화한 논지 / 새로 만든 페이지 / 반박·모순 등록 내역
+- 强化的论点 / 新建的页面 / 反驳·矛盾登记记录
 
 ## Notable quotes
-> "원문 직접 인용 (페이지·위치 표시 권장)"
+> "原文直接引用 (建议标注页码/位置)"

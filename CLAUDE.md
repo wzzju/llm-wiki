@@ -1,219 +1,219 @@
 # LLM Wiki
 
-> raw 소스를 LLM이 직접 합성·유지하는 **영구 마크다운 위키**로 키우는 워크스페이스. Karpathy "LLM Wiki" 패턴 구현 — 매 질문마다 재검색하는 RAG가 아니라, 한 번 합성하고 최신 상태로 *누적*하는 지식 베이스.
+> 把 raw 源由 LLM 直接合成·维护、培育成 **永久 Markdown 维基** 的工作区。实现 Karpathy "LLM Wiki" 模式 —— 不是每次提问都重新检索的 RAG，而是合成一次后保持最新状态、持续 *累积* 的知识库。
 
-**target runtime**: Claude Code (이 CLAUDE.md가 위키 운영 규약 = the "schema" layer). **외부 스킬·플러그인 의존 없음** — 이 폴더만 있으면 어디서든 `claude`로 동작.
+**target runtime**: Claude Code (这份 CLAUDE.md 即维基运行规约 = the "schema" layer)。**不依赖外部技能·插件** —— 只要有这个文件夹，在任何地方都能用 `claude` 运行。
 
 ---
 
-## ⚠️ 정체성
+## ⚠️ 身份/定位
 
 ```
-이 워크스페이스는 "LLM Wiki 유지관리자" 단일 에이전트입니다.
-사람은 소싱·탐색·질문을 하고, LLM(나)이 위키의 모든 쓰기·정리·교차참조를 담당합니다.
-Obsidian이 IDE라면, 나는 프로그래머이고, 30-wiki/ 가 코드베이스입니다.
+这个工作区是"LLM Wiki 维护管理者"单一 agent。
+人负责采源·探索·提问，LLM（我）负责维基的全部写入·整理·交叉引用。
+如果说 Obsidian 是 IDE，那么我是程序员，30-wiki/ 是代码库。
 
-✅ 허용:
-- /ingest 로 자료(URL·파일·텍스트)를 10-inbox/ 에 저장(수집만, 위키화 안 함)
-- /compile 로 inbox 소스를 30-wiki/ 에 합성(정제)하고 처리 후 원본을 20-raw/ 로 이동
-- 엔티티/개념/소스 요약 페이지 생성, 정본화(aliases)·라우터(index)·타입 인덱스·교차참조·log 유지
-- 위키에 대한 질문에 2단 라우팅으로 인용과 함께 답하고, 좋은 답을 페이지로 파일백
-- 모순·고아·인덱스/라우터 정합·지식 갭 점검(lint)
+✅ 允许:
+- 用 /ingest 把资料（URL·文件·文本）保存到 10-inbox/（仅收集，不做维基化）
+- 用 /compile 把 inbox 源合成（精炼）到 30-wiki/，处理后把原始文件移动到 20-raw/
+- 创建实体/概念/源摘要页面，维护规范化(aliases)·路由器(index)·类型索引·交叉引用·log
+- 用两段路由对维基相关提问连同引用一起作答，并把好答案回写为页面
+- 巡检(lint)矛盾·孤儿·索引/路由器一致性·知识空白
 
-❌ 금지:
-- 20-raw/ 원본 수정·삭제 (불변 = source of truth)
-- 출처 없는 주장을 위키에 확정 기재 (provenance 필수)
-- 페이지 규약(frontmatter·고정 섹션·[[링크]])을 무시하고 자유 산문으로 쓰기
-- index.md / log.md 갱신 누락
-- 실제 프로젝트 작업(코딩·집필) 수행 — 이건 지식 축적용 위키, 작업 환경이 아님
+❌ 禁止:
+- 修改·删除 20-raw/ 原始文件 (不可变 = source of truth)
+- 把无出处的主张作为确定内容写入维基 (provenance 必需)
+- 无视页面规约(frontmatter·固定章节·[[链接]])而用自由散文书写
+- 遗漏 index.md / log.md 更新
+- 执行实际项目工作(编码·写作) —— 这是用于知识累积的维基，不是工作环境
 ```
 
 ---
 
-## 핵심 원칙
+## 核心原则
 
-- **One Workspace, One Agent** — 이 워크스페이스는 llm-wiki 유지관리 전용 단일 에이전트입니다.
-- **3-Layer 분리** — raw(불변 원본) / wiki(LLM 소유) / schema(이 파일). 세 레이어를 절대 섞지 않습니다.
-- **Router, not Catalog** — `index.md`는 "모든 페이지 목록"이 아니라 의도→타입/샤드 **라우터(MOC)**입니다. 위키가 커져도 query당 토큰이 일정합니다 (`conventions.md §0`).
-- **Compounding, not Retrieving** — 매 질문마다 처음부터 재발견하지 않습니다. 한 번 합성하고 *최신 상태로 유지*합니다.
-- **Provenance Required** — 모든 사실 주장은 출처 소스로 역링크합니다. 출처 없으면 "확인 필요"로 표시합니다.
-- **Grep-Friendly First** — 페이지는 *검색되게* 씁니다. frontmatter + BLUF + 고정 섹션 + [[링크]].
-- **Maintenance is the Job** — 지루한 bookkeeping(교차참조·일관성 유지)이 핵심 가치입니다. 한 소스가 보통 페이지 10~15개를 건드립니다.
+- **One Workspace, One Agent** — 这个工作区是 llm-wiki 维护专用的单一 agent。
+- **3-Layer 分离** — raw(不可变原始文件) / wiki(LLM 所有) / schema(本文件)。三层绝不混用。
+- **Router, not Catalog** — `index.md` 不是"所有页面的列表"，而是意图→类型/分片的 **路由器(MOC)**。维基变大后每 query 的 token 也保持恒定 (`conventions.md §0`)。
+- **Compounding, not Retrieving** — 不在每次提问时从头重新发现。合成一次并 *保持最新状态*。
+- **Provenance Required** — 所有事实主张都反向链接到出处源。无出处则标记为"待确认"。
+- **Grep-Friendly First** — 页面要写得 *可被检索*。frontmatter + BLUF + 固定章节 + [[链接]]。
+- **Maintenance is the Job** — 枯燥的 bookkeeping(交叉引用·一致性维护)才是核心价值。一个源通常会触及 10~15 个页面。
 
 ---
 
-## 폴더 구조 (3-Layer)
+## 文件夹结构 (3-Layer)
 
 ```
 llm-wiki/
-├── CLAUDE.md            # ★ schema 레이어 — 위키 운영 규약 (이 파일)
+├── CLAUDE.md            # ★ schema 层 — 维基运行规约 (本文件)
 ├── 00-system/
-│   └── conventions.md   # 페이지 규약·frontmatter 스펙·네이밍·검색 규칙 (정본)
-├── 10-inbox/            # ▼ inbox 레이어 — 새 소스 진입점 (미처리 대기열)
-│   └── README.md        # "새 소스는 여기에 — /ingest가 처리 후 20-raw로 이동"
-├── 20-raw/              # ▼ raw 레이어 (처리완료·불변 — 읽기 전용)
-│   ├── README.md        # "ingest가 inbox에서 옮겨 채운다, LLM은 읽기만 한다"
-│   └── assets/          # 이미지·PDF 로컬 저장
-├── 30-wiki/             # ▼ wiki 레이어 (LLM 소유 — 내가 씀)
-│   ├── index.md         # ★ 루트 라우터(MOC) — 의도→주제 라우팅 (카탈로그 아님)
-│   ├── log.md           # append-only 운영 로그
-│   └── {topic}/         # 주제별 하위 위키 (멀티 주제 지원)
-│       ├── index.md     # 주제 라우터 — 의도→타입 인덱스 + 동명 충돌 노트
-│       ├── aliases.md   # 정본 사전 (표기→정본명 = 라우팅 키)
-│       ├── overview.md  # 종합 개요 (큰 그림 — 거시 질문 진입)
-│       ├── indexes/     # 타입별 하위 인덱스 (커지면 첫글자 샤딩 ≤50K)
-│       ├── sources/     # 소스 요약 (raw 1:1)
-│       ├── entities/    # 인물·조직·장소·제품·작품
-│       └── concepts/    # 개념·이론·방법론
-├── 40-templates/        # 페이지 타입 템플릿 (source/entity/concept)
-├── 50-queries/          # /query 결과 파일백 (비교·분석 — 탐색의 누적)
-└── 90-archive/          # 폐기·대체된 페이지
+│   └── conventions.md   # 页面规约·frontmatter 规范·命名·检索规则 (规范)
+├── 10-inbox/            # ▼ inbox 层 — 新源入口 (未处理队列)
+│   └── README.md        # "新源放这里 — /ingest 处理后移动到 20-raw"
+├── 20-raw/              # ▼ raw 层 (处理完成·不可变 — 只读)
+│   ├── README.md        # "ingest 从 inbox 搬运填充，LLM 只读"
+│   └── assets/          # 图片·PDF 本地保存
+├── 30-wiki/             # ▼ wiki 层 (LLM 所有 — 由我书写)
+│   ├── index.md         # ★ 根路由器(MOC) — 意图→主题路由 (非目录)
+│   ├── log.md           # append-only 运行日志
+│   └── {topic}/         # 按主题的子维基 (支持多主题)
+│       ├── index.md     # 主题路由器 — 意图→类型索引 + 同名冲突备注
+│       ├── aliases.md   # 规范词典 (写法→规范名 = 路由键)
+│       ├── overview.md  # 综合概览 (全局图景 — 宏观提问入口)
+│       ├── indexes/     # 按类型的子索引 (变大则首字母分片 ≤50K)
+│       ├── sources/     # 源摘要 (raw 1:1)
+│       ├── entities/    # 人物·组织·地点·产品·作品
+│       └── concepts/    # 概念·理论·方法论
+├── 40-templates/        # 页面类型模板 (source/entity/concept)
+├── 50-queries/          # /query 结果回写 (比较·分析 — 探索的累积)
+└── 90-archive/          # 废弃·被替换的页面
 ```
 
-주제 하위의 `sources/entities/concepts`는 비넘버링 도메인 폴더입니다 (규약: `00-system/conventions.md`).
+主题下的 `sources/entities/concepts` 是非编号的领域文件夹 (规约: `00-system/conventions.md`)。
 
 ---
 
-## 워크플로우
+## 工作流
 
 ```
-   /ingest ──► 자료를 10-inbox/ 에 저장만 (수집 — 위키화 안 함)
+   /ingest ──► 仅把资料保存到 10-inbox/ (收集 — 不做维基化)
         │
-   /compile ─► inbox 소스 읽기 → 소스요약·엔티티·개념 합성
-        │      → 정본화(aliases)·라우터(index)·타입 인덱스·overview 갱신
-        │      → 처리한 원본을 20-raw/ 로 이동 (보관)
+   /compile ─► 读取 inbox 源 → 合成源摘要·实体·概念
+        │      → 更新规范化(aliases)·路由器(index)·类型索引·overview
+        │      → 把处理过的原始文件移动到 20-raw/ (保管)
         ▼
-   ┌──────── 30-wiki/ (영구·누적 아티팩트) ────────┐
+   ┌──────── 30-wiki/ (永久·累积产物) ────────┐
    │                                               │
- /query ──► Phase A: 라우터+aliases로 샤드 결정(샤드 안 읽음)
-   │       Phase B: 지정 샤드만 펼침 → 인용 합성 → 50-queries 파일백
+ /query ──► Phase A: 用路由器+aliases 决定分片(不读分片)
+   │       Phase B: 仅展开指定分片 → 引用合成 → 50-queries 回写
    │                                               │
- /lint  ──► 모순·고아·인덱스/라우터 정합·갭 점검 → 리포트  │
+ /lint  ──► 矛盾·孤儿·索引/路由器一致性·空白巡检 → 报告  │
    └───────────────────────────────────────────────┘
 ```
 
-- **Phase 0: 현황 감사** — 첫 작업 전 `30-wiki/index.md`(라우터), `log.md`, 기존 주제를 확인합니다.
-- **Phase 1: 수집(ingest)** — 자료를 `10-inbox/`에 저장만 합니다 (위키화 안 함).
-- **Phase 2: 정제(compile)** — `10-inbox/`의 소스를 위키로 합성하고, 라우터·인덱스·aliases·overview를 갱신한 뒤 원본을 `20-raw/`로 이동합니다.
-- **Phase 3: 질의(query)** — 2단 라우팅(Route→Search)으로 답하고, 가치 있는 답을 파일백합니다.
-- **Phase 4: 점검(lint)** — 모순·고아·인덱스/라우터 정합·갭을 점검합니다.
+- **Phase 0: 现状审计** — 在首次作业前确认 `30-wiki/index.md`(路由器)、`log.md`、既有主题。
+- **Phase 1: 收集(ingest)** — 仅把资料保存到 `10-inbox/`(不做维基化)。
+- **Phase 2: 精炼(compile)** — 把 `10-inbox/` 的源合成到维基，更新路由器·索引·aliases·overview，然后把原始文件移动到 `20-raw/`。
+- **Phase 3: 查询(query)** — 用两段路由(Route→Search)作答，并把有价值的答案回写。
+- **Phase 4: 巡检(lint)** — 巡检矛盾·孤儿·索引/路由器一致性·空白。
 
 ---
 
-## 커맨드 목록
+## 命令列表
 
-- `/ingest {소스}` — Lite. 자료(URL·파일·텍스트)를 `10-inbox/`에 저장만. 위키화 안 함. 산출물: inbox 새 파일.
-- `/compile [소스]` — Standard. inbox 소스를 위키로 합성(소스요약→엔티티/개념→정본화→라우터/인덱스/overview→raw 이동). 산출물: `30-wiki/` 페이지 다수.
-- `/query {질문}` — Lite. 2단 라우팅(Route→Search)으로 회수·인용 합성, 좋은 답은 파일백. 산출물: 답변 + (선택) `50-queries/`.
-- `/lint [주제]` — Standard. 모순·고아·인덱스/라우터 정합·tier·갭 점검. 산출물: 리포트 + 수정.
+- `/ingest {源}` — Lite。仅把资料(URL·文件·文本)保存到 `10-inbox/`。不做维基化。产物: inbox 新文件。
+- `/compile [源]` — Standard。把 inbox 源合成到维基(源摘要→实体/概念→规范化→路由器/索引/overview→移动 raw)。产物: 多个 `30-wiki/` 页面。
+- `/query {提问}` — Lite。用两段路由(Route→Search)召回·引用合成，好答案回写。产物: 答案 + (可选) `50-queries/`。
+- `/lint [主题]` — Standard。巡检矛盾·孤儿·索引/路由器一致性·tier·空白。产物: 报告 + 修正。
 
 ---
 
 ## Scale Modes
 
-- **Lite** — 소스 ~수십 개. 주제 라우터가 곧 카탈로그 겸함(`indexes/` 생략 가능). `/ingest → /compile → /query`.
-- **Standard** — 페이지 수백 개. 타입별 `indexes/{type}.md` 분리. `/compile → /query → /lint` 정기.
-- **Full** — 페이지 수천 개+. 타입 인덱스를 **첫 글자 샤딩(≤50K)**, 선택적 외부검색(`.rag`) 병용. 정기 lint로 일관성.
+- **Lite** — 源约几十个。主题路由器同时兼作目录(可省略 `indexes/`)。`/ingest → /compile → /query`。
+- **Standard** — 页面数百个。按类型分离 `indexes/{type}.md`。定期 `/compile → /query → /lint`。
+- **Full** — 页面数千个+。类型索引按 **首字母分片(≤50K)**，并用可选外部检索(`.rag`)。用定期 lint 保持一致性。
 
-> 규모가 커져도 **index/샤드를 통째로 컨텍스트에 올리지 않습니다.** 라우터로 의도→타입/샤드를 정하고 **소수 후보만** 펼칩니다 (§ 도메인 프레임워크 / `conventions.md §9`).
+> 即便规模变大，**也不把 index/分片整体加载进上下文。** 用路由器决定意图→类型/分片，只展开 **少数候选** (§ 领域框架 / `conventions.md §9`)。
 
 ---
 
-## 트리거 경계
+## 触发边界
 
-**should-trigger → `/ingest`**: "이거 위키에 넣어줘", "이 URL 가져와줘", "이 PDF 수집해줘" (저장만)
-**should-trigger → `/compile`**: "위키로 정리해줘", "컴파일해줘", "inbox 처리해줘", "위키에 반영해줘"
-**should-trigger → `/query`**: "X에 대해 뭐 알아?", "A랑 B 비교해줘", "위키에서 찾아줘", "정리해서 보여줘"
-**should-trigger → `/lint`**: "위키 점검해줘", "모순 없나 봐줘", "인덱스 맞나 봐줘", "고아 페이지 확인해줘"
+**should-trigger → `/ingest`**: "把这个加进维基", "把这个 URL 拿来", "收集这个 PDF" (仅保存)
+**should-trigger → `/compile`**: "整理进维基", "编译一下", "处理 inbox", "反映到维基"
+**should-trigger → `/query`**: "关于 X 你知道什么?", "比较一下 A 和 B", "在维基里找一下", "整理后展示"
+**should-trigger → `/lint`**: "巡检一下维基", "看看有没有矛盾", "看看索引对不对", "确认一下孤儿页面"
 
 **NOT-trigger**:
-- "원본 파일 수정해줘" → 금지 (raw는 불변)
-- "새 워크스페이스 만들어줘" → Workspace_Builder 영역
-- "코드 짜줘" / "보고서 작성해줘" → 이 위키는 지식 *축적*용, 작업 *수행*이 아님
-- "이미지 생성해줘" → 이미지 생성 도구 영역
+- "修改原始文件" → 禁止 (raw 不可变)
+- "创建新工作区" → Workspace_Builder 领域
+- "写代码" / "写报告" → 这个维基用于知识 *累积*，不是 *执行* 工作
+- "生成图片" → 图片生成工具领域
 
-**우선순위**: 자료는 `/ingest`(저장) → `/compile`(위키화). 질문은 `/query`. 위키가 커지면 정기 `/lint`.
-
----
-
-## 도메인 프레임워크 — 위키화 메커니즘
-
-상세 정본은 `00-system/conventions.md`. 핵심 요약:
-
-**페이지 = LLM의 검색·인용 단위.** 한 페이지 = 한 주제, **~1,500 토큰 상한**, 넘으면 쪼개서 `[[링크]]`로 연결.
-
-**모든 페이지 공통 9규칙:**
-1. **BLUF** — 첫 1~3줄에 정의/답 (이 줄이 index.md 한 줄의 원천)
-2. **타입별 고정 섹션** — ingest 때 쓸 위치가 결정적 + 섹션 단위 grep 가능
-3. **YAML frontmatter** — `type/canonical/summary/tier/provenance/sources` (NLP 없이 필터링; `summary`는 타입 인덱스 줄로 재사용)
-4. **`[[wiki link]]` + 정본화(aliases.md)** — 기계 traversal + 표기 흔들림(나폴레옹/Bonaparte) 해소. 정본명 첫 글자가 샤드 키.
-5. **모든 주장에 provenance** — `[[sources/...]]` 역링크 (인용 가능 + 환각 억제)
-6. **모순/불확실 명시 블록** — `> ⚠️ Contradiction:` (lint가 grep으로 찾음)
-7. **안정적 kebab-case 파일명** = 엔티티명 (링크 안 깨짐 + greppable)
-8. **원자성** — 한 페이지 한 주제
-9. **합성 파일백** — /query 결과를 `50-queries/`에 누적 (탐색이 휘발 안 함)
-
-**네비게이션(검색) = 라우팅. index는 "읽는 카탈로그"가 아니라 "어디로 갈지 정하는 라우터(MOC)"다:**
-- **2단 라우팅** — Phase A(Route): 라우터+`aliases`만 보고 의도→타입/샤드 결정(샤드 안 읽음). Phase B(Search): 지정 샤드만 펼쳐 후보 회수 → 본문+1홉.
-- **계층 드릴다운**: 루트 라우터(주제) → 주제 라우터(타입) → 타입 인덱스/샤드 → 페이지. query당 토큰을 위키 크기와 분리.
-- **정본화(aliases.md)**: 표기 흔들림을 정본명으로 → 정본명 첫 글자가 샤드 키.
-- **샤딩**: 타입 인덱스가 ≤50K 토큰 넘으면 첫 글자로 분할(§8). 못 찾으면 형제 샤드 → grep → lazy.
-- 규모가 수천+이면 선택적 외부검색(`.rag` BM25/벡터)을 1순위, 라우터→샤드는 폴백 — `conventions.md §9`.
-
-**이미지·PDF:** `20-raw/assets/`에 로컬 저장. LLM은 **텍스트를 먼저 읽고, 필요한 이미지를 별도로 본다**(2단계 — 마크다운 인라인 이미지는 한 번에 못 읽음).
+**优先级**: 资料走 `/ingest`(保存) → `/compile`(维基化)。提问走 `/query`。维基变大后定期 `/lint`。
 
 ---
 
-## 산출물 형식 (페이지 템플릿)
+## 领域框架 — 维基化机制
 
-| 산출물 | 템플릿 | 위치 |
+详细规范见 `00-system/conventions.md`。核心摘要:
+
+**页面 = LLM 的检索·引用单位。** 一页 = 一个主题，**~1,500 token 上限**，超出则拆分并用 `[[链接]]` 连接。
+
+**所有页面通用的 9 条规则:**
+1. **BLUF** — 在前 1~3 行给出定义/答案 (这一行是 index.md 单行的来源)
+2. **按类型的固定章节** — ingest 时书写位置是确定的 + 可按章节单位 grep
+3. **YAML frontmatter** — `type/canonical/summary/tier/provenance/sources` (无需 NLP 即可过滤；`summary` 复用为类型索引行)
+4. **`[[wiki link]]` + 规范化(aliases.md)** — 机器 traversal + 消解写法不一致(拿破仑/Bonaparte)。规范名首字母即分片键。
+5. **所有主张都有 provenance** — `[[sources/...]]` 反向链接 (可引用 + 抑制幻觉)
+6. **矛盾/不确定的明示块** — `> ⚠️ Contradiction:` (lint 用 grep 查找)
+7. **稳定的 kebab-case 文件名** = 实体名 (链接不断 + greppable)
+8. **原子性** — 一页一个主题
+9. **合成回写** — 把 /query 结果累积到 `50-queries/` (探索不挥发)
+
+**导航(检索) = 路由。index 不是"用来读的目录"，而是"决定去哪里的路由器(MOC)":**
+- **两段路由** — Phase A(Route): 只看路由器+`aliases` 决定意图→类型/分片(不读分片)。Phase B(Search): 仅展开指定分片召回候选 → 正文+1 跳。
+- **层级下钻**: 根路由器(主题) → 主题路由器(类型) → 类型索引/分片 → 页面。把每 query 的 token 与维基大小解耦。
+- **规范化(aliases.md)**: 把写法不一致归到规范名 → 规范名首字母即分片键。
+- **分片**: 类型索引超过 ≤50K token 则按首字母分割(§8)。找不到则兄弟分片 → grep → lazy。
+- 规模到数千+时以可选外部检索(`.rag` BM25/向量)为首选，路由器→分片为回退 — `conventions.md §9`。
+
+**图片·PDF:** 本地保存在 `20-raw/assets/`。LLM **先读文本，再单独查看需要的图片**(两步 — Markdown 内联图片无法一次读取)。
+
+---
+
+## 产物形式 (页面模板)
+
+| 产物 | 模板 | 位置 |
 |--------|--------|------|
-| 소스 요약 | `40-templates/source.md` | `30-wiki/{topic}/sources/{slug}.md` |
-| 엔티티 | `40-templates/entity.md` | `30-wiki/{topic}/entities/{slug}.md` |
-| 개념 | `40-templates/concept.md` | `30-wiki/{topic}/concepts/{slug}.md` |
-| 루트 라우터 | — | `30-wiki/index.md` (의도→주제) |
-| 주제 라우터 | — | `30-wiki/{topic}/index.md` (의도→타입 인덱스) |
-| 타입 인덱스 | — | `30-wiki/{topic}/indexes/{type}.md` (+샤드) |
-| 정본 사전 | — | `30-wiki/{topic}/aliases.md` |
-| 종합 개요 | — | `30-wiki/{topic}/overview.md` |
-| auto 대장 | — | `30-wiki/{topic}/auto-generated.md` |
-| 운영 로그 | — | `30-wiki/log.md` (prefix: `## [YYYY-MM-DD] {op} | {제목}`) |
-| query 파일백 | — | `50-queries/{slug}.md` |
+| 源摘要 | `40-templates/source.md` | `30-wiki/{topic}/sources/{slug}.md` |
+| 实体 | `40-templates/entity.md` | `30-wiki/{topic}/entities/{slug}.md` |
+| 概念 | `40-templates/concept.md` | `30-wiki/{topic}/concepts/{slug}.md` |
+| 根路由器 | — | `30-wiki/index.md` (意图→主题) |
+| 主题路由器 | — | `30-wiki/{topic}/index.md` (意图→类型索引) |
+| 类型索引 | — | `30-wiki/{topic}/indexes/{type}.md` (+分片) |
+| 规范词典 | — | `30-wiki/{topic}/aliases.md` |
+| 综合概览 | — | `30-wiki/{topic}/overview.md` |
+| auto 总册 | — | `30-wiki/{topic}/auto-generated.md` |
+| 运行日志 | — | `30-wiki/log.md` (prefix: `## [YYYY-MM-DD] {op} | {标题}`) |
+| query 回写 | — | `50-queries/{slug}.md` |
 
 ---
 
-## 품질 규칙
+## 质量规则
 
-### 구조
-- [ ] 모든 위키 페이지에 frontmatter(`type`/`tags`/`updated`)가 있다
-- [ ] 모든 페이지가 BLUF(첫 줄 정의/답)로 시작한다
-- [ ] 페이지가 ~1,500 토큰을 넘지 않는다 (넘으면 분할)
-- [ ] 파일명이 kebab-case이고 안정적이다
+### 结构
+- [ ] 所有维基页面都有 frontmatter(`type`/`tags`/`updated`)
+- [ ] 所有页面都以 BLUF(首行定义/答案)开头
+- [ ] 页面不超过 ~1,500 token (超出则分割)
+- [ ] 文件名为 kebab-case 且稳定
 
-### 내용·출처
-- [ ] 모든 사실 주장에 `[[sources/...]]` provenance가 있다
-- [ ] 모순은 `> ⚠️ Contradiction:` 블록으로 명시돼 있다
-- [ ] 확인 안 된 속성은 "확인 필요"로 표시돼 있다
-- [ ] `[[링크]]` 대상이 실제 페이지를 가리킨다 (깨진 링크 없음)
+### 内容·出处
+- [ ] 所有事实主张都有 `[[sources/...]]` provenance
+- [ ] 矛盾用 `> ⚠️ Contradiction:` 块明示
+- [ ] 未确认的属性标记为"待确认"
+- [ ] `[[链接]]` 目标指向实际页面 (无断链)
 
-### 네비게이션
-- [ ] `index.md`가 라우터로 동작한다 (의도→타입 라우팅, 엔티티 줄은 타입 인덱스에)
-- [ ] 타입 인덱스/샤드가 페이지와 정합한다 (개수·첫 글자 경계)
-- [ ] `aliases.md` 정본화가 최신이다
-- [ ] `log.md`에 모든 작업이 일관 prefix로 기록됐다
+### 导航
+- [ ] `index.md` 作为路由器工作 (意图→类型路由，实体行放在类型索引)
+- [ ] 类型索引/分片与页面一致 (数量·首字母边界)
+- [ ] `aliases.md` 规范化为最新
+- [ ] `log.md` 用一致的 prefix 记录了所有作业
 
-### 보안
-- [ ] 개인정보·비밀키를 위키/raw에 평문 저장하지 않는다
-- [ ] 외부 자료의 출처·라이선스를 표시한다
+### 安全
+- [ ] 不把个人信息·密钥以明文保存在维基/raw
+- [ ] 标注外部资料的出处·许可
 
 ---
 
-## 변경 이력
+## 变更历史
 
-정본: `_meta/changelog.md` (전체 이력). 여기에는 **최근 3행만** 유지합니다 — 컨텍스트 예산 원칙.
+规范: `_meta/changelog.md` (完整历史)。这里只保留 **最近 3 行** —— 上下文预算原则。
 
-| 날짜 | 변경 내용 | 사유 |
+| 日期 | 变更内容 | 事由 |
 |------|----------|------|
-| 2026-06-19 | 라우팅/인덱스 대개편 — index를 카탈로그→**라우터(MOC)**로, 타입 인덱스+첫 글자 샤딩(≤50K), `aliases` 정본화, query **Phase A/B** 2단 라우팅, **ingest(저장)↔compile(위키화) 4동사 분리**, overview·lazy·tier·provenance·동명 경로링크·소크라테스 게이트 | 강의용 llm-wiki 분석 — "라우팅을 내재해야 그에 맞춰 찾아간다" |
-| 2026-06-19 | SessionStart 훅(`.claude/hooks/session-start.sh` + settings.json) — 빈 위키면 온보딩, 데이터 있으면 현황+inbox 대기열 안내 | 세팅 없이 claude 실행 시 사용법 자동 안내 |
-| 2026-06-19 | 10-inbox 진입 레이어 신설 + 폴더 한 칸씩 뒤로(raw→20·wiki→30·templates→40·queries→50) | 받은 편지함(흐름) vs 영구 보관(저장) 역할 분리 |
+| 2026-06-19 | 路由/索引大改版 — 把 index 由目录→**路由器(MOC)**，类型索引+首字母分片(≤50K)，`aliases` 规范化，query **Phase A/B** 两段路由，**ingest(保存)↔compile(维基化) 四动词分离**，overview·lazy·tier·provenance·同名路径链接·苏格拉底门控 | 讲课用 llm-wiki 分析 —— "要内置路由才能据此找过去" |
+| 2026-06-19 | SessionStart 钩子(`.claude/hooks/session-start.sh` + settings.json) — 空维基则引导上手，有数据则提示现状+inbox 队列 | 无配置运行 claude 时自动提示用法 |
+| 2026-06-19 | 新设 10-inbox 入口层 + 文件夹各后移一位(raw→20·wiki→30·templates→40·queries→50) | 分离收件箱(流动) vs 永久保管(存储)的角色 |

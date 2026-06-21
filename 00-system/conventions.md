@@ -1,249 +1,249 @@
-# 위키 페이지·인덱스·라우팅 규약 (정본)
+# 维基页面·索引·路由规约 (正本)
 
-> `CLAUDE.md` § 도메인 프레임워크의 상세 정본. LLM은 페이지를 쓰거나 갱신하거나 위키에 질문할 때 이 규약을 따른다. 규약을 바꾸면 여기서 바꾸고 `_meta/changelog.md`에 기록한다.
-
----
-
-## 0. 핵심 모델 — 라우터·샤딩·정본화 (먼저 읽기)
-
-LLM Wiki의 검색은 "전부 읽기"가 아니라 **라우팅**이다. 위키가 수천 페이지로 커져도 **질문 1개당 읽는 토큰이 거의 일정**하게 유지되는 게 목표다. 이를 위한 4개 기둥:
-
-1. **index = 라우터(MOC)**, 카탈로그가 아니다. `index.md`는 "모든 페이지 목록"이 아니라 **"질문 의도 → 어느 타입/샤드를 펼칠지"** 정하는 얇은 진입점이다. 엔티티 줄은 index에 두지 않는다.
-2. **타입별 하위 인덱스 + 샤딩.** 실제 엔티티 카탈로그는 `indexes/{type}.md`에 둔다. 한 타입이 커지면 **정본명 첫 글자로 ≤50K 토큰 샤드**로 쪼갠다 (§8).
-3. **정본화(aliases).** 표기 흔들림(Parasite/기생충, 샬라메/Timothée Chalamet)을 **정본명 1개**로 모은다. 정본명이 곧 **샤드 라우팅 키**다 (§4).
-4. **2단 라우팅 (Phase A / Phase B).** 질문 처리는 "어디를 열지 정하기(Route, 샤드 안 읽음)"와 "지정 샤드·페이지 읽기(Search)"를 분리한다 (§9). 라우팅이 샤드를 읽지 않아야 샤딩의 토큰 절감이 지켜진다.
-
-> 규모가 작을 땐 이 구조가 과해 보이지만, **메커니즘을 처음부터 박아둬야** 데이터가 쌓일 때 자연스럽게 라우터→타입 인덱스→샤드로 성장한다. 소규모에선 한 단계가 다음 단계를 겸한다 (§9 성장 경로).
+> `CLAUDE.md` § 领域框架的详细正本。LLM 在编写或更新页面、或向维基提问时遵循此规约。修改规约时在此处修改并记录到 `_meta/changelog.md`。
 
 ---
 
-## 1. 페이지 타입
+## 0. 核心模型 — 路由器·分片·规范化 (先读)
 
-| 타입 | frontmatter `type` | 위치 | 1:1 대상 |
+LLM Wiki 的检索不是"全部读取"，而是**路由**。即使维基增长到数千个页面，目标也是让**每个提问读取的 token 几乎保持恒定**。为此设有 4 根支柱：
+
+1. **index = 路由器(MOC)**，不是目录。`index.md` 不是"所有页面的列表"，而是决定**"提问意图 → 展开哪个类型/分片"**的轻量入口。实体行不放在 index 中。
+2. **按类型的子索引 + 分片。** 实际的实体目录放在 `indexes/{type}.md`。某个类型变大时，**按规范名首字母拆成 ≤50K token 的分片** (§8)。
+3. **规范化(aliases)。** 把写法不一致(Parasite/寄生虫, 甜茶/Timothée Chalamet)聚合到**单个规范名**。规范名即**分片路由键** (§4)。
+4. **2 段路由 (Phase A / Phase B)。** 提问处理把"决定打开哪里(Route，不读分片)"与"读取指定分片·页面(Search)"分离 (§9)。路由不读分片，分片的 token 节省才能得到保障。
+
+> 规模小时这套结构看似过度，但**只有从一开始就把机制嵌入**，数据累积时才能自然地按 路由器→类型索引→分片 成长。小规模时一个层级兼任下一个层级 (§9 成长路径)。
+
+---
+
+## 1. 页面类型
+
+| 类型 | frontmatter `type` | 位置 | 1:1 对象 |
 |------|--------------------|------|----------|
-| 소스 요약 | `source` | `30-wiki/{topic}/sources/` | raw 소스 1개당 1페이지 |
-| 엔티티 | `entity` | `30-wiki/{topic}/entities/` | 인물·조직·장소·제품·작품 |
-| 개념 | `concept` | `30-wiki/{topic}/concepts/` | 이론·방법론·용어 |
-| 타입 인덱스 | `index` | `30-wiki/{topic}/indexes/{type}.md` | 타입 1개당 1개(+샤드) |
-| 주제 라우터 | `index` | `30-wiki/{topic}/index.md` | 주제 1개당 1개 |
-| 루트 라우터 | `index` | `30-wiki/index.md` | 위키 전체 1개 |
-| 종합 개요 | `overview` | `30-wiki/{topic}/overview.md` | 주제 1개당 1개(선택) |
-| 정본 사전 | `aliases` | `30-wiki/{topic}/aliases.md` | 주제 1개당 1개 |
-| query 파일백 | `query` | `50-queries/` | 가치 있는 질의 결과 |
+| 源摘要 | `source` | `30-wiki/{topic}/sources/` | 每个 raw 源 1 页 |
+| 实体 | `entity` | `30-wiki/{topic}/entities/` | 人物·组织·地点·产品·作品 |
+| 概念 | `concept` | `30-wiki/{topic}/concepts/` | 理论·方法论·术语 |
+| 类型索引 | `index` | `30-wiki/{topic}/indexes/{type}.md` | 每个类型 1 个(+分片) |
+| 主题路由器 | `index` | `30-wiki/{topic}/index.md` | 每个主题 1 个 |
+| 根路由器 | `index` | `30-wiki/index.md` | 整个维基 1 个 |
+| 综合概览 | `overview` | `30-wiki/{topic}/overview.md` | 每个主题 1 个(可选) |
+| 规范词典 | `aliases` | `30-wiki/{topic}/aliases.md` | 每个主题 1 个 |
+| query 回写 | `query` | `50-queries/` | 有价值的查询结果 |
 
-**도메인 세분(선택):** `entity`가 많아지면 도메인에 맞게 하위 타입으로 나눌 수 있다 (예: 영화 도메인 → `people`/`works`/`series`). 이때 폴더·인덱스도 타입별로 분리한다. 기본은 `entity` 하나로 시작하고, 한 종류가 수십 개를 넘으면 분리를 검토한다.
+**领域细分(可选):** `entity` 增多时可按领域分为子类型(例如：电影领域 → `people`/`works`/`series`)。此时文件夹·索引也按类型分离。默认从单个 `entity` 开始，某一种超过数十个时考虑分离。
 
-**신뢰 등급(tier):** 모든 엔티티/개념 페이지는 `tier`를 단다 — `reviewed`(원본 추출·사람 확인) 또는 `auto`(웹/추론 lazy 생성, 미검수). `auto`는 `auto-generated.md` 대장에 등록한다 (§10).
+**信任等级(tier):** 所有实体/概念页面都标注 `tier` — `reviewed`(原文提取·人工确认) 或 `auto`(网络/推理 lazy 生成、未检验)。`auto` 登记到 `auto-generated.md` 总账 (§10)。
 
 ---
 
-## 2. frontmatter 스펙 (타입별)
+## 2. frontmatter 规范 (按类型)
 
 ### source
 ```yaml
 type: source
-title: "소스 원제목"
-source_file: 20-raw/2026-06-14-article.md   # 처리완료 원본 역참조 (compile이 raw로 이동 후 경로)
-topic: "주제 슬러그"
-summary: "1~2문장 + 검색 키워드 5~10개"   # 이 문장이 sources/index 줄로 재사용됨
+title: "源原标题"
+source_file: 20-raw/2026-06-14-article.md   # 处理完成的原始文件反向引用 (compile 移入 raw 后的路径)
+topic: "主题 slug"
+summary: "1~2 句 + 检索关键词 5~10 个"   # 该句子复用为 sources/index 的行
 ingested: 2026-06-14
-author: ""        # 있으면
-url: ""           # 있으면
+author: ""        # 如有
+url: ""           # 如有
 tags: []
 provenance: extracted
 ```
 
 ### entity / concept
 ```yaml
-type: entity            # 또는 concept
-canonical: "정본명"      # 라우팅 키 (첫 글자가 샤드 결정)
-aka: []                 # 같은 대상의 다른 표기 (aliases.md에도 등재)
-topic: "주제 슬러그"
-summary: "1~2문장 + 키워드 5~10개"   # ★ 이 문장이 indexes/{type}.md 의 줄 description으로 그대로 재사용됨
+type: entity            # 或 concept
+canonical: "规范名"      # 路由键 (首字母决定分片)
+aka: []                 # 同一对象的其他写法 (也登记到 aliases.md)
+topic: "主题 slug"
+summary: "1~2 句 + 关键词 5~10 个"   # ★ 该句子原样复用为 indexes/{type}.md 的行 description
 tags: []
-sources: []             # 이 페이지를 뒷받침하는 raw/소스 id들
+sources: []             # 支撑本页的 raw/源 id
 tier: reviewed          # reviewed | auto
 provenance: extracted   # extracted | inferred | ambiguous | web-enriched
 status: active          # active | stub | deprecated
 updated: 2026-06-14
 ```
 
-`summary`는 **인덱스의 원천**이다 — 잘 쓰면 인덱스가 자동으로 좋아진다. 1~2문장 정의 + 검색 키워드를 반드시 포함한다.
+`summary` 是**索引的源头** — 写得好索引就会自动变好。务必包含 1~2 句定义 + 检索关键词。
 
 ---
 
-## 3. 페이지 본문 골격 (고정 섹션)
+## 3. 页面正文骨架 (固定章节)
 
-ingest/compile 때 "어디에 쓸지"를 결정적으로 만들기 위해 타입별 섹션을 고정한다. 빈 섹션은 `_(아직 없음)_`으로 남겨 grep 가능하게 둔다.
+为了在 ingest/compile 时让"写到哪里"具有确定性，按类型固定章节。空章节留 `_(暂无)_` 以保持 grep 可用。
 
 - **source**: `**TL;DR:**` → `## Key claims` → `## Entities & concepts` → `## How this updated the wiki` → `## Notable quotes`
-- **entity/concept**: `**정의:**`(BLUF) → `## 요약` → `## Key facts` → `## 관계` → `## Open questions / 모순` → `## Sources`
+- **entity/concept**: `**定义:**`(BLUF) → `## 摘要` → `## Key facts` → `## 关系` → `## Open questions / 矛盾` → `## Sources`
 
-템플릿 실물은 `40-templates/{source,entity,concept}.md`.
+模板实物见 `40-templates/{source,entity,concept}.md`。
 
 ---
 
-## 4. 네이밍 & 정본화 (aliases.md)
+## 4. 命名 & 规范化 (aliases.md)
 
-- 파일명 = **kebab-case 슬러그**, 안정적(한 번 정하면 안 바꿈 — 링크 깨짐 방지). 예: `napoleon-bonaparte.md`
-- 한글 엔티티는 한글 슬러그 허용(공백→하이픈). 예: `기동전.md`
-- 소스 슬러그는 날짜 prefix 권장: `2026-06-14-article-title.md`
+- 文件名 = **kebab-case slug**，稳定(一旦确定就不改 — 防止链接断裂)。例：`napoleon-bonaparte.md`
+- 中文实体允许中文 slug(空格→连字符)。例：`机动战.md`
+- 源 slug 建议加日期 prefix：`2026-06-14-article-title.md`
 
-### 정본명 규칙 (라우팅 키)
-- 엔티티마다 **정본명 1개**를 정하고 frontmatter `canonical`에 둔다. **정본명 첫 글자가 샤드를 결정**한다 (§8).
-- 같은 대상의 다른 표기는 **새 파일을 만들지 말고** frontmatter `aka` + 중앙 `aliases.md`에 등재한다.
-- **정본화 = 검색 입구.** 질문이 "Parasite"로 와도 `aliases.md`에서 `기생충`으로 바꾼 뒤 라우팅한다.
+### 规范名规则 (路由键)
+- 每个实体确定**单个规范名**并放入 frontmatter `canonical`。**规范名首字母决定分片** (§8)。
+- 同一对象的其他写法**不要新建文件**，而是登记到 frontmatter `aka` + 中央 `aliases.md`。
+- **规范化 = 检索入口。** 即使提问以"Parasite"到来，也先在 `aliases.md` 中换成 `寄生虫` 再路由。
 
-### aliases.md (주제별 정본 사전)
-`30-wiki/{topic}/aliases.md`에 `별칭/표기 → 정본명` 매핑을 누적한다.
+### aliases.md (按主题的规范词典)
+在 `30-wiki/{topic}/aliases.md` 中累积 `别名/写法 → 规范名` 映射。
 ```markdown
-| 표기/별칭 | 정본명 | 타입 |
+| 写法/别名 | 规范名 | 类型 |
 |-----------|--------|------|
-| Parasite, 기생충, 寄生虫 | 기생충 | entity(work) |
-| 샬라메, Chalamet | Timothée Chalamet | entity(person) |
+| Parasite, 寄生蟲, 寄生虫 | 寄生虫 | entity(work) |
+| 甜茶, Chalamet | Timothée Chalamet | entity(person) |
 ```
-compile이 새 엔티티를 만들 때 별칭이 보이면 여기에 추가한다. query는 라우팅 전에 이 표를 먼저 읽는다.
+compile 创建新实体时若看到别名就加到此处。query 在路由前先读此表。
 
 ---
 
-## 5. 링크 & 교차참조
+## 5. 链接 & 交叉引用
 
-- 위키 내부 참조는 `[[상대경로/슬러그]]`. 예: `[[entities/napoleon-bonaparte]]`, `[[sources/2026-06-14-article]]`
-- 모든 **사실 주장**은 뒤에 provenance 링크: `나폴레옹은 코르시카 출신이다 [[sources/2026-06-14-article]]`
-- 출처 없는 추론·합성은 `(추론)`/`확인 필요`로 표시.
-- **링크는 대상 페이지가 실제 있을 때만** 건다. 없는 엔티티는 plain text로 두고(씨앗), 질문 시 lazy 승격한다 (§10) — 죽은 링크를 양산하지 않는다.
+- 维基内部引用用 `[[相对路径/slug]]`。例：`[[entities/napoleon-bonaparte]]`、`[[sources/2026-06-14-article]]`
+- 所有**事实主张**后接 provenance 链接：`拿破仑出身于科西嘉 [[sources/2026-06-14-article]]`
+- 无出处的推理·合成用 `(推断)`/`待确认` 标注。
+- **链接只在目标页面实际存在时**才建。不存在的实体保留为 plain text(种子)，提问时 lazy 提升 (§10) — 不批量产生死链接。
 
-### 동명 disambiguation (경로 명시 링크)
-같은 이름이 여러 타입/폴더에 있으면(예: `entities/Dune`이 작품 페이지와 시리즈 페이지 양쪽) **경로 명시 링크**로 가린다:
+### 同名 disambiguation (路径明示链接)
+同一名称存在于多个类型/文件夹时(例如 `entities/Dune` 同时有作品页和系列页)用**路径明示链接**区分：
 ```markdown
-[[works/Dune|Dune]]  (단일 작품)  vs  [[series/Dune|Dune]]  (프랜차이즈)
+[[works/Dune|Dune]]  (单一作品)  vs  [[series/Dune|Dune]]  (系列作品)
 ```
-그리고 **라우터(index)의 「동명 충돌」 노트에 그 이름을 등재**해, 라우팅 시 양쪽 샤드를 모두 펼치게 한다.
+并在**路由器(index)的「同名冲突」笔记中登记该名称**，使路由时两个分片都展开。
 
 ---
 
-## 6. 모순 처리
+## 6. 矛盾处理
 
-새 소스가 기존 주장과 충돌하면 **덮어쓰지 말고** 양쪽을 보존하고 명시:
+新源与既有主张冲突时**不要覆盖**，保留并明示两方：
 ```markdown
-## Open questions / 모순
-> ⚠️ Contradiction: [[sources/A]]는 X라 하고 [[sources/B]]는 Y라 한다. 미해결.
+## Open questions / 矛盾
+> ⚠️ Contradiction: [[sources/A]] 说 X，[[sources/B]] 说 Y。未解决。
 ```
-`/lint`가 `grep -rn "⚠️ Contradiction" 30-wiki/`로 전수 추적한다. (동명 disambiguation은 모순이 아니라 §5의 경로 링크로 처리 — 구분할 것.)
+`/lint` 用 `grep -rn "⚠️ Contradiction" 30-wiki/` 全量追踪。(同名 disambiguation 不是矛盾，而是用 §5 的路径链接处理 — 须区分。)
 
 ---
 
-## 7. index.md = 라우터 (MOC, 카탈로그 아님)
+## 7. index.md = 路由器 (MOC, 非目录)
 
-**핵심: index는 "읽는 목록"이 아니라 "어디로 갈지 정하는 라우터"다.** 엔티티 줄은 index에 두지 않는다 — 그건 `indexes/{type}.md`의 일.
+**核心：index 不是"读取的列表"，而是"决定去往何处的路由器"。** 实体行不放在 index 中 — 那是 `indexes/{type}.md` 的活。
 
-### 루트 라우터 (`30-wiki/index.md`)
-- frontmatter `tags: [index, moc, router]`.
-- 주제 목록 + 주제별 페이지 수 + 전역 허브(overview·aliases) 링크만.
-- "질문이 어느 주제인지" → 해당 주제 라우터로 보낸다.
+### 根路由器 (`30-wiki/index.md`)
+- frontmatter `tags: [index, moc, router]`。
+- 仅放主题列表 + 各主题页面数 + 全局枢纽(overview·aliases)链接。
+- "提问属于哪个主题" → 转送到对应主题路由器。
 
-### 주제 라우터 (`30-wiki/{topic}/index.md`)
-- **의도 → 타입 인덱스 라우팅 표**가 본체:
+### 主题路由器 (`30-wiki/{topic}/index.md`)
+- **意图 → 类型索引路由表**为主体：
 
-| 의도 | 읽을 하위 인덱스 | 분할 키 | 개수 |
+| 意图 | 要读的子索引 | 分割键 | 数量 |
 |------|------------------|---------|------|
-| 인물·조직 | `[[indexes/entities]]` (또는 샤드) | 정본명 첫 글자 | N |
-| 개념·이론 | `[[indexes/concepts]]` | (단일) | M |
-| 원본 출처 | `[[sources/index]]` | (단일) | K |
+| 人物·组织 | `[[indexes/entities]]` (或分片) | 规范名首字母 | N |
+| 概念·理论 | `[[indexes/concepts]]` | (单一) | M |
+| 原始出处 | `[[sources/index]]` | (单一) | K |
 
-- **동명 충돌 노트** (양쪽 샤드 확인 대상 이름 목록).
-- **저장된 쿼리** 링크 (`50-queries/`).
-- 푸터에 타입별 합계.
+- **同名冲突笔记** (需确认两个分片的名称列表)。
+- **已保存查询**链接 (`50-queries/`)。
+- 页脚放各类型合计。
 
-라우팅 규칙(라우터 본문에 명시): "타입+첫 글자가 명확하면 샤드 1개만 / 타입 모호하면 후보 샤드 동시 / 못 찾으면 grep → lazy".
+路由规则(在路由器正文中明示)："类型+首字母明确则只 1 个分片 / 类型模糊则候选分片同时 / 找不到则 grep → lazy"。
 
 ---
 
-## 8. 타입별 하위 인덱스 + 샤딩
+## 8. 按类型的子索引 + 分片
 
-`30-wiki/{topic}/indexes/{type}.md` = 그 타입 엔티티의 **카탈로그**. 각 줄:
+`30-wiki/{topic}/indexes/{type}.md` = 该类型实体的**目录**。每行：
 ```markdown
-- [[entities/napoleon-bonaparte]] — 프랑스 군인·황제. 기동전·대육군. 키워드: 코르시카, 1804 대관식, 워털루.
+- [[entities/napoleon-bonaparte]] — 法国军人·皇帝。机动战·大军团。关键词: 科西嘉, 1804 加冕, 滑铁卢。
 ```
-줄 description은 **페이지 frontmatter `summary`를 그대로 재사용**한다(§2). 이 줄로 "어느 페이지를 펼칠지" 1차 선별한다.
+行 description **原样复用页面 frontmatter 的 `summary`**(§2)。用此行进行"展开哪个页面"的初步筛选。
 
-### 샤딩 (≤50K 토큰)
-- 한 타입 인덱스가 커지면 **정본명 첫 글자로 토큰 균형 샤딩**: `indexes/entities-a-m.md`, `indexes/entities-n-z.md`.
-- **한글 정본은 둘째 샤드**(`-n-z` 쪽)에 모은다(알파벳 뒤).
-- 각 샤드 ≤50K 토큰 유지. 넘으면 경계를 다시 나눈다.
-- 라우터의 분할 키 표를 샤드와 동기화한다(`/lint`가 점검).
+### 分片 (≤50K token)
+- 某个类型索引变大时，**按规范名首字母做 token 均衡分片**：`indexes/entities-a-m.md`、`indexes/entities-n-z.md`。
+- **中文规范名归入第二个分片**(`-n-z` 侧)(字母之后)。
+- 各分片保持 ≤50K token。超出则重新划分边界。
+- 把路由器的分割键表与分片同步(`/lint` 巡检)。
 
 ---
 
-## 9. 검색 성장 경로 (3단) + Phase A/B 라우팅
+## 9. 检索成长路径 (3 段) + Phase A/B 路由
 
-| 규모 | 인덱스 구조 | 라우팅 |
+| 规模 | 索引结构 | 路由 |
 |------|-------------|--------|
-| ~수십 페이지 | 주제 라우터가 곧 카탈로그 겸함 (`indexes/` 생략 가능) | 라우터 1개 읽고 페이지 직행 |
-| ~수백 페이지 | 타입별 `indexes/{type}.md` 분리 | 라우터 → 타입 인덱스 1개 → 페이지 |
-| 수천+ 페이지 | 타입 인덱스를 첫 글자 **샤딩** | 라우터 → 샤드 1개 → 페이지 (+선택: 외부 검색 `.rag`) |
+| ~数十页面 | 主题路由器兼任目录 (`indexes/` 可省略) | 读 1 个路由器直达页面 |
+| ~数百页面 | 按类型分离 `indexes/{type}.md` | 路由器 → 1 个类型索引 → 页面 |
+| 数千+页面 | 类型索引按首字母**分片** | 路由器 → 1 个分片 → 页面 (+可选：外部检索 `.rag`) |
 
-> 외부 하이브리드 검색(`.rag` BM25/벡터)은 **선택적 파생 인프라**다. 있으면 query의 후보 찾기 1순위, **없으면 라우터→샤드 tiered-read로 폴백**한다 (OMC·외부 의존 0이 기본). 원본·위키는 불변이고 `.rag`는 언제든 재생성 가능한 파생물.
+> 外部混合检索(`.rag` BM25/vector)是**可选的派生基础设施**。有则作为 query 找候选的首选，**没有则回退到 路由器→分片 tiered-read**(OMC·零外部依赖为默认)。原始文件·维基不可变，`.rag` 是随时可重新生成的派生物。
 
-### 2단 라우팅 (모든 규모 공통)
-- **Phase A — Route (페이지 안 읽음):** 질문에서 엔티티+타입 의도+연산(조회/비교/종합)을 뽑고, `aliases.md`로 정본화한 뒤, **라우터만 보고** 열 샤드의 최소 집합을 정한다. 샤드는 절대 읽지 않는다 (~2K 토큰).
-- **Phase B — Search (샤드+페이지 읽기):** 지정 샤드만 펼쳐 후보 선별 → 본문만 읽고 `[[링크]]` 1홉 보강 → 근거로만 인용 답. 미스 시 **넓히기 사다리**: 형제 샤드 → `30-wiki/` 전체 grep → lazy 생성 또는 "없음".
+### 2 段路由 (所有规模通用)
+- **Phase A — Route (不读页面):** 从提问中抽取实体+类型意图+操作(查询/比较/综合)，用 `aliases.md` 规范化后，**仅看路由器**确定要打开的分片最小集合。绝不读分片 (~2K token)。
+- **Phase B — Search (读分片+页面):** 仅展开指定分片做候选筛选 → 只读正文并用 `[[链接]]` 补充 1 跳 → 仅以依据引用作答。未命中时走**扩大检索阶梯**：兄弟分片 → `30-wiki/` 全文 grep → lazy 生成或"无"。
 
-**핵심 불변식:** index/샤드를 통째로 컨텍스트에 올리지 않는다. 항상 라우팅으로 **소수 후보만** 들인다 → 위키 크기와 query당 토큰 비용을 분리.
-
----
-
-## 10. lazy 생성 + tier 승격
-
-- **고빈도만 미리 페이지로.** 코퍼스 전역에서 **≥2회** 등장한 엔티티만 자체 페이지를 만든다(compile이 전역 집계로 판정). 1회 등장은 상위 페이지의 plain text **씨앗**으로 두고, 질문이 오면 그때 생성(lazy).
-- **lazy 생성:** Phase B에서 grep에도 없을 때 — `20-raw/`·`sources/`에 **씨앗이 있으면** raw+웹으로 즉석 생성(`tier: auto`, `provenance: web-enriched`) → `auto-generated.md` 대장 + 해당 첫 글자 샤드에 등재(라우터는 개수·동명 노트만 갱신). **씨앗도 없으면 지어내지 말고 "위키에 없음 — ingest 필요".**
-- **tier 승격:** `auto` 페이지를 사람이 확인하면 `reviewed`로 승격하고, frontmatter·`auto-generated.md` 대장·타입 인덱스 세 곳을 정합시킨다(`/lint` 점검).
+**核心不变式：** 不把 index/分片整体放上下文。始终通过路由只引入**少数候选** → 把维基大小与每个 query 的 token 成本分离。
 
 ---
 
-## 11. overview.md (종합 진입)
+## 10. lazy 生成 + tier 提升
 
-`30-wiki/{topic}/overview.md` = 전 소스를 가로지른 큰 그림. "이 위키가 무엇을 아는가"를 한 페이지로. 거시·탐색 질문(Phase B)은 overview를 먼저 읽고 관련 샤드로 내려간다. compile이 갱신한다.
+- **仅高频才预先建页。** 仅对在语料全局中出现 **≥2 次**的实体建独立页面(compile 通过全局聚合判定)。出现 1 次的留作上级页面的 plain text **种子**，提问到来时再生成(lazy)。
+- **lazy 生成:** Phase B 中连 grep 也找不到时 — 若 `20-raw/`·`sources/` 中**有种子**，则用 raw+网络即时生成(`tier: auto`、`provenance: web-enriched`) → 登记到 `auto-generated.md` 总账 + 对应首字母分片(路由器仅更新数量·同名笔记)。**若连种子也没有，不要臆造，标"维基中无 — 需 ingest"。**
+- **tier 提升:** 人工确认 `auto` 页面后提升为 `reviewed`，并使 frontmatter·`auto-generated.md` 总账·类型索引三处保持一致(`/lint` 巡检)。
 
 ---
 
-## 12. 파일 변환·이미지·PDF
+## 11. overview.md (综合入口)
 
-### 문서 변환 (바이너리 → 마크다운)
-Claude는 docx·pptx·xlsx 같은 바이너리를 직접 못 읽는다. `/ingest`가 확장자를 보고 마크다운으로 변환한 뒤 inbox에 넣는다. **원본 바이너리는 `20-raw/assets/`에 보관**(출처 보존), 변환된 `.md`만 compile 대상.
+`30-wiki/{topic}/overview.md` = 横跨全部源的全局图景。用一页呈现"这个维基知道什么"。宏观·探索性提问(Phase B)先读 overview 再下钻到相关分片。由 compile 更新。
 
-| 입력 | 1순위 (로컬·무료) | 폴백 (opt-in) |
+---
+
+## 12. 文件转换·图片·PDF
+
+### 文档转换 (二进制 → markdown)
+Claude 无法直接读取 docx·pptx·xlsx 等二进制。`/ingest` 看扩展名转换为 markdown 后放入 inbox。**原始二进制保管在 `20-raw/assets/`**(保留出处)，仅转换后的 `.md` 作为 compile 对象。
+
+| 输入 | 首选 (本地·免费) | 回退 (opt-in) |
 |------|-------------------|----------------|
-| `.md`/`.txt`/`.html` | 그대로 | — |
-| `.pdf` | Claude PDF Read(텍스트형) / `markitdown` | LlamaParse (스캔·복잡 표) |
-| `.docx`/`.pptx`/`.xlsx` | `markitdown <파일>` | LlamaParse (표 많은 문서) |
+| `.md`/`.txt`/`.html` | 原样 | — |
+| `.pdf` | Claude PDF Read(文本型) / `markitdown` | LlamaParse (扫描·复杂表格) |
+| `.docx`/`.pptx`/`.xlsx` | `markitdown <文件>` | LlamaParse (表格多的文档) |
 
-- **markitdown = 주력.** `pip install 'markitdown[all]'` 하나로 Office·PDF·이미지를 마크다운으로. 로컬·무료 → 자족 원칙 유지.
-- **LlamaParse = 순수 opt-in.** `LLAMA_CLOUD_API_KEY`가 있을 때만 발동(표·레이아웃 복잡 문서 품질↑). 무료 크레딧 한도 내 사용, 초과 시 유료. **키 없으면 조용히 로컬(markitdown)로 폴백** — 자족성 안 깨짐.
-- 어떤 도구도 없으면 막지 말고 설치 안내 또는 "텍스트로 붙여달라".
+- **markitdown = 主力。** 用 `pip install 'markitdown[all]'` 一个就能把 Office·PDF·图片转为 markdown。本地·免费 → 保持自足原则。
+- **LlamaParse = 纯 opt-in。** 仅当存在 `LLAMA_CLOUD_API_KEY` 时触发(表格·布局复杂文档质量↑)。在免费额度内使用，超出则收费。**没有密钥则静默回退到本地(markitdown)** — 不破坏自足性。
+- 任何工具都没有时不要阻断，提供安装指引或"请粘贴为文本"。
 
-### 이미지·PDF
-- 원본은 `20-raw/assets/`에 로컬 저장 (URL은 깨질 수 있으므로 다운로드 권장).
-- 위키 페이지에서 이미지 참조: `![설명](../../20-raw/assets/figure.png)` + 캡션 텍스트.
-- **2단계 읽기:** LLM은 마크다운 인라인 이미지를 한 번에 못 읽으므로, 텍스트를 먼저 읽고 필요한 이미지를 별도로 Read 한다.
-
----
-
-## 13. provenance 등급 (설명가능성)
-
-모든 주장·페이지에 출처 근거를 표기한다:
-- `extracted` — 원본에서 직접 추출
-- `inferred` — LLM이 추론·합성 (단정 금지, 사람 확인 대상)
-- `ambiguous` — 정본·사실이 모호 (pending-decisions로 추적)
-- `web-enriched` — lazy 생성 시 웹 보강 (`tier: auto`와 짝)
-
-`inferred`/`ambiguous`는 단정하지 말고 §14 게이트로 사람 확인 후 확정한다.
+### 图片·PDF
+- 原始文件本地保存在 `20-raw/assets/`(URL 可能失效，建议下载)。
+- 维基页面中的图片引用：`![说明](../../20-raw/assets/figure.png)` + 标题文字。
+- **两段读取:** LLM 无法一次性读取 markdown 内联图片，故先读文本，再单独 Read 所需图片。
 
 ---
 
-## 14. 소크라테스 게이트 (인간 감독)
+## 13. provenance 等级 (可解释性)
 
-위키가 커질수록 어딘가 환각이 1개 섞일 확률이 1에 수렴한다. 그래서 LLM은 **무비판 수용자가 아니라 비판자**로 동작한다:
-- 사람이 자료·아이디어를 던지면, 모순·약점·근거 부족을 **짚어 되묻는다**.
-- compile/query의 `inferred`·`ambiguous`·모순은 단정하지 말고 사람 확인을 받은 뒤 `reviewed`로 확정한다.
-- 대량 자동 생성(lazy/백필) 후엔 `/lint`로 dead-link·동명·할루·오역 스폿체크를 권한다.
+所有主张·页面都标注出处依据：
+- `extracted` — 从原文直接提取
+- `inferred` — LLM 推理·合成 (禁止断言，须人工确认)
+- `ambiguous` — 规范名·事实模糊 (用 pending-decisions 追踪)
+- `web-enriched` — lazy 生成时网络补充 (与 `tier: auto` 配对)
+
+`inferred`/`ambiguous` 不要断言，经 §14 门控人工确认后再确定。
+
+---
+
+## 14. 苏格拉底门控 (人工监督)
+
+维基越大，某处混入 1 个幻觉的概率就越趋近于 1。因此 LLM 作为**批判者而非无批判的接受者**运作：
+- 当人抛出资料·想法时，**指出并反问**矛盾·弱点·依据不足。
+- compile/query 的 `inferred`·`ambiguous`·矛盾不要断言，经人工确认后再确定为 `reviewed`。
+- 大量自动生成(lazy/回填)后，建议用 `/lint` 抽查 dead-link·同名·幻觉·误译。

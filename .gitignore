@@ -2,10 +2,10 @@
 .claude/settings.local.json
 .claude/.star-asked
 
-# OMC (배포 제외)
+# OMC (排除发布)
 .omc/
 
-# 비밀키/환경 변수 (R16.5 보안 P0)
+# 密钥/环境变量 (R16.5 安全 P0)
 .env
 .env.*
 !.env.example
@@ -14,14 +14,16 @@
 secrets/
 credentials/
 
-# PII 3중 방어 (R23, 07-SECURITY_SECRETS.md) — 1·2단: 키워드 + 전용 폴더.
-# 3단(문서 확장자 catch-all)은 도메인에 따라 산출물과 겹칠 수 있어 주석 제공 —
-# PII 문서를 다루는 워크스페이스(계약서·신분증 등)는 반드시 주석 해제하거나 경로를 좁혀 적용.
-*주민*
-*계좌*
-*통장*
-*신분증*
-*개인정보*
+# PII 三重防御 (R23, 07-SECURITY_SECRETS.md) — 第 1·2 层: 关键词 + 专用文件夹。
+# 第 3 层(文档扩展名 catch-all)因领域不同可能与产物重叠,故以注释提供 —
+# 处理 PII 文档的工作区(合同、身份证等)务必取消注释或收窄路径后再应用。
+*身份证*
+*身份证号*
+*户口*
+*银行卡*
+*银行账户*
+*存折*
+*个人信息*
 pii/
 private/
 # *.pdf
@@ -39,6 +41,6 @@ Thumbs.db
 .vscode/
 *.swp
 
-# 임시 파일
+# 临时文件
 *.tmp
 *.temp

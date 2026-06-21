@@ -1,54 +1,54 @@
 ---
-description: "새 자료 수집, 자료 넣기, URL/파일/텍스트를 위키에 넣기 요청에 사용합니다. '이거 위키에 넣어줘', '이 자료 수집해줘', '이 URL 가져와줘', '이 PDF 넣어줘' 같은 요청에 대응합니다. ingest는 inbox에 저장만 하고, 위키 페이지로 정제하는 건 /compile, 질문은 /query, 점검은 /lint를 사용합니다."
+description: "用于收集新资料、放入资料、把 URL/文件/文本放进维基的请求。对应「把这个放进维基」「收集这份资料」「抓取这个 URL」「放入这个 PDF」之类的请求。ingest 只把资料保存到 inbox，精炼为维基页面由 /compile 负责，提问用 /query，巡检用 /lint。"
 ---
 
-# /ingest — 수집 (저장만)
+# /ingest — 收集 (只保存)
 
-자료를 `10-inbox/`에 새 파일로 **저장만** 합니다. **위키 페이지는 만들지 않습니다** — 그건 `/compile`의 일(저장과 정제를 분리). 저장된 소스는 inbox에 "미컴파일" 상태로 쌓이고, `/compile`이 위키로 정제한 뒤 `20-raw/`로 옮깁니다.
+把资料作为新文件**只保存**到 `10-inbox/`。**不创建维基页面** —— 那是 `/compile` 的工作（保存与精炼分离）。保存的源以「未编译」状态堆积在 inbox，由 `/compile` 精炼为维基后再移动到 `20-raw/`。
 
-## 사용법
+## 用法
 
 ```text
-/ingest [URL | 파일경로 | 붙여넣은 텍스트]
+/ingest [URL | 文件路径 | 粘贴的文本]
 /ingest https://example.com/article
 /ingest ~/Downloads/paper.pdf
 ```
-> 사용자가 직접 `10-inbox/`에 파일을 떨궈도 됩니다 (그 경우 `/ingest` 없이 바로 `/compile`).
+> 用户也可以直接把文件丢进 `10-inbox/`（这种情况下无需 `/ingest`，直接 `/compile`）。
 
-## 실행 흐름
+## 执行流程
 
-### Step 1: 가져오기
-- **URL** → 본문을 fetch해 마크다운으로 변환. (WebFetch가 SPA·봇차단으로 실패하면 사용자에게 본문 붙여넣기를 요청하거나 보유한 스크래핑 도구 사용.)
-- **파일 경로** → 읽어서 가져옴. 이미지·PDF 첨부는 `20-raw/assets/`에 저장(영구 자산).
-- **텍스트** → 그대로.
+### Step 1: 获取
+- **URL** → fetch 正文并转换为 markdown。（若 WebFetch 因 SPA·反爬封锁而失败，请请求用户粘贴正文，或使用已有的抓取工具。）
+- **文件路径** → 读取并取入。图片·PDF 附件保存到 `20-raw/assets/`（永久资产）。
+- **文本** → 原样取入。
 
-### Step 1.5: 포맷 변환 (바이너리 → 마크다운)
-docx·pptx·xlsx·복잡 PDF는 Claude가 직접 못 읽으므로 마크다운으로 변환해 inbox에 넣는다 (원본 바이너리는 `20-raw/assets/`에 보관). 확장자별 라우팅 — 정본: `conventions.md §12`:
-- `.md`/`.txt`/`.html` → 그대로.
-- `.docx`/`.pptx`/`.xlsx` → `markitdown <파일> > 10-inbox/{slug}.md` (1순위, 로컬·무료). 없으면 `pip install 'markitdown[all]'` 안내.
-- `.pdf` → 텍스트형은 Claude가 직접 Read, 스캔/복잡 표는 markitdown.
-- 표·레이아웃 복잡 + `LLAMA_CLOUD_API_KEY` 있음 → LlamaParse로 고품질 변환(폴백). 키 없으면 markitdown으로.
-- 어떤 도구도 없으면 막지 말고 설치 안내 또는 "텍스트로 붙여달라".
+### Step 1.5: 格式转换 (二进制 → markdown)
+docx·pptx·xlsx·复杂 PDF Claude 无法直接读取，故转换为 markdown 放入 inbox（原始二进制文件保管在 `20-raw/assets/`）。按扩展名路由 —— 正本：`conventions.md §12`：
+- `.md`/`.txt`/`.html` → 原样。
+- `.docx`/`.pptx`/`.xlsx` → `markitdown <文件> > 10-inbox/{slug}.md`（首选，本地·免费）。若没有则提示 `pip install 'markitdown[all]'`。
+- `.pdf` → 文本型由 Claude 直接 Read，扫描/复杂表格用 markitdown。
+- 表格·版式复杂 + 有 `LLAMA_CLOUD_API_KEY` → 用 LlamaParse 做高质量转换（fallback）。无密钥则用 markitdown。
+- 若没有任何工具，不要卡住，而是提示安装或请求「以文本粘贴」。
 
-### Step 2: inbox에 저장
-- `10-inbox/{YYYY-MM-DD}-{slug}.md`에 **새 파일명**으로 저장한다.
-- 같은 자료의 갱신이면 `-v2`처럼 새 이름으로 (덮어쓰기 금지).
-- 파일 맨 위 frontmatter에 출처(원본 URL/경로)·수집일을 남긴다.
+### Step 2: 保存到 inbox
+- 以**新文件名**保存到 `10-inbox/{YYYY-MM-DD}-{slug}.md`。
+- 若是同一份资料的更新，用 `-v2` 这样的新名称（禁止覆盖）。
+- 在文件顶部的 frontmatter 中留下出处（原始 URL/路径）·收集日期。
 
-### Step 3: 알림 (위키화 안 함)
-- **위키 페이지는 만들지 않는다** — 저장만.
-- `30-wiki/log.md`에 `## [YYYY-MM-DD] ingest | {제목}` 한 줄.
-- "inbox에 미컴파일 소스 N개 대기 → `/compile`로 위키화하세요" 안내.
+### Step 3: 通知 (不做维基化)
+- **不创建维基页面** —— 只保存。
+- 在 `30-wiki/log.md` 写一行 `## [YYYY-MM-DD] ingest | {标题}`。
+- 提示「inbox 中有 N 个未编译源待处理 → 请用 `/compile` 维基化」。
 
-## 트리거 경계
+## 触发边界
 
-should-trigger: "이 자료 넣어줘", "수집해줘", "이 URL 가져와", "이 PDF 넣어"
+should-trigger: "把这份资料放进去", "收集一下", "抓取这个 URL", "放入这个 PDF"
 NOT-trigger:
-- "위키로 정리해줘" / "정제해줘" / "컴파일" → `/compile`
-- "X에 대해 뭐 알아?" → `/query`
-- "위키 점검해줘" → `/lint`
-- "원본 고쳐줘" → 금지 (raw 불변)
+- "整理成维基" / "精炼一下" / "编译" → `/compile`
+- "你了解 X 吗?" → `/query`
+- "巡检一下维基" → `/lint`
+- "改一下原文" → 禁止 (raw 不可变)
 
-## 참조
-- `/compile` — inbox 소스를 위키 페이지로 정제 + raw 이동
-- `00-system/conventions.md` — 페이지·인덱스·라우팅 규약
+## 参考
+- `/compile` — 把 inbox 源精炼为维基页面 + 移动到 raw
+- `00-system/conventions.md` — 页面·索引·路由规约

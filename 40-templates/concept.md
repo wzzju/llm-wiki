@@ -1,35 +1,35 @@
 ---
 type: concept
-canonical: ""           # 정본명 — 첫 글자가 샤드를 결정 (라우팅 키)
-aka: []                 # 다른 표기 (aliases.md에도 등재)
+canonical: ""           # 规范名 — 首字母决定分片 (路由键)
+aka: []                 # 其他写法 (也在 aliases.md 中登记)
 topic: ""
-summary: "1~2문장 정의 + 키워드 5~10개"   # indexes/{type} 줄로 재사용됨
+summary: "1~2句定义 + 5~10个关键词"   # 复用为 indexes/{type} 的条目
 tags: []
-sources: []             # 뒷받침 raw/소스 id
+sources: []             # 支撑的 raw/源 id
 tier: reviewed          # reviewed | auto
 provenance: extracted   # extracted | inferred | ambiguous | web-enriched
 status: active          # active | stub | deprecated
 updated: YYYY-MM-DD
 ---
 
-# {개념명}
+# {概念名}
 
-**정의:** 한 줄 BLUF — 이 개념이 무엇인지 한 문장으로.
+**定义:** 一行 BLUF — 用一句话说明这个概念是什么。
 
-## 요약
-2~4문장 합성. 개념의 핵심과 맥락.
+## 摘要
+2~4句合成。概念的核心与背景。
 
 ## Key points
-- 요점 1 [[sources/...]]
-- 요점 2 [[sources/...]]
+- 要点 1 [[sources/...]]
+- 要点 2 [[sources/...]]
 
-## 관계
-- [[...]] — 관련 개념/엔티티와의 연결
-- [[...]] — 상위/하위/대조 개념
+## 关系
+- [[...]] — 与相关概念/实体的关联
+- [[...]] — 上位/下位/对照概念
 
-## Open questions / 모순
-_(없으면 비워둠. 있으면:)_
-> ⚠️ Contradiction: [[sources/A]]는 X, [[sources/B]]는 Y. 미해결.
+## Open questions / 矛盾
+_(若无则留空。若有:)_
+> ⚠️ Contradiction: [[sources/A]] 为 X, [[sources/B]] 为 Y。未解决。
 
 ## Sources
 - [[sources/...]]

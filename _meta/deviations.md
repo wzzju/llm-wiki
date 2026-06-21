@@ -1,21 +1,21 @@
 # Template Deviation Log
 
-이 파일은 워크스페이스가 `20-archetypes/knowledge-base` 템플릿과 어떻게 다른지를 기록합니다.
-Quick Path 생성에서는 "기본 템플릿 유지"가 기본 기록이고,
-Custom Path에서는 사용자가 명시적으로 동의한 변경 사항만 기록합니다.
+本文件记录工作区与 `20-archetypes/knowledge-base` 模板有何不同。
+Quick Path 生成中，"保留基本模板"是默认记录，
+Custom Path 中只记录用户明确同意的变更项。
 
-## Reflected Harness Metadata (생성 시점)
+## Reflected Harness Metadata (生成时点)
 
-| 항목 | 값 | 출처 |
+| 项 | 值 | 来源 |
 |------|----|------|
-| target runtime | Claude Code (CLAUDE.md) | Workspace_Builder 전용 |
+| target runtime | Claude Code (CLAUDE.md) | Workspace_Builder 专用 |
 | harness_type | basic | 18-HARNESS_CONCEPTS.md |
-| state_model | enabled=True, path=_meta | _meta 위치 |
-| doctor_checks | structure, instructions, commands, security, harness-contract | validator 권장 묶음 |
+| state_model | enabled=True, path=_meta | _meta 位置 |
+| doctor_checks | structure, instructions, commands, security, harness-contract | validator 推荐组合 |
 
 ## Deviation Table
 
-| 날짜 | 아키타입 | 일탈 사유 | 영향 |
+| 日期 | 原型 | 偏离事由 | 影响 |
 |------|----------|-----------|------|
-| 2026-06-14 | knowledge-base | Custom Path: KB 온톨로지 모델 → Karpathy LLM-wiki 모델로 재구성. 폴더 10-schema/20-data/30-relations/50-exports/frameworks 제거, 00-system/20-raw/30-wiki/40-templates 신설. 커맨드 specify/implement/validate → ingest/query/lint. CLAUDE.md를 위키 운영 schema로 재작성. (사용자 명시 요청: "기본적인 LLM-wiki 동작방식을 담아서 구현") | 구조·커맨드 전면 변경. 핵심 KB DNA(구조화·검증·provenance)는 유지, 표면을 위키화 워크플로우로 치환 |
-| 2026-06-14 | knowledge-base | base_archetype만 knowledge-base, 표면 전부 custom. structure.json은 실제 구조 반영해 갱신 | 자기검증 정합 |
+| 2026-06-14 | knowledge-base | Custom Path：KB 本体模型 → 重构为 Karpathy LLM-wiki 模型。移除文件夹 10-schema/20-data/30-relations/50-exports/frameworks，新建 00-system/20-raw/30-wiki/40-templates。命令 specify/implement/validate → ingest/query/lint。将 CLAUDE.md 重写为维基运营 schema。（用户明确请求："实现包含基本 LLM-wiki 运行方式的版本"） | 结构·命令全面变更。核心 KB DNA（结构化·验证·provenance）保留，表层替换为维基化工作流 |
+| 2026-06-14 | knowledge-base | 仅 base_archetype 为 knowledge-base，表层全部 custom。structure.json 反映实际结构而更新 | 自校验一致性 |

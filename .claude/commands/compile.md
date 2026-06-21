@@ -1,81 +1,81 @@
 ---
-description: "inbox 소스를 위키로 정제, 위키화, 정리, 컴파일 요청에 사용합니다. '위키로 정리해줘', '컴파일해줘', '정제해줘', 'inbox 처리해줘', '위키에 반영해줘' 같은 요청에 대응합니다. compile은 inbox의 미컴파일 소스를 읽어 위키 페이지로 합성하고 index·aliases·overview를 갱신한 뒤 원본을 raw로 옮깁니다. 단, 자료 수집은 /ingest, 질문은 /query, 점검은 /lint를 사용합니다."
+description: "用于把 inbox 源精炼、维基化、整理、编译为维基的请求。对应「整理成维基」「编译一下」「精炼一下」「处理 inbox」「反映到维基」之类的请求。compile 读取 inbox 中未编译的源，合成为维基页面，更新 index·aliases·overview 后把原文移到 raw。其中，资料收集用 /ingest，提问用 /query，巡检用 /lint。"
 ---
 
-# /compile — 정제 (inbox 소스 → 위키)
+# /compile — 精炼 (inbox 源 → 维基)
 
-`10-inbox/`의 미컴파일 소스를 읽어 위키 페이지로 합성하고, **라우터·타입 인덱스·aliases·overview를 갱신**한 뒤 원본을 `20-raw/`로 옮깁니다. 단순 복사가 아니라 기존 페이지 갱신·교차참조·정본화·모순 표시.
+读取 `10-inbox/` 中未编译的源，合成为维基页面，**更新路由器·类型索引·aliases·overview** 后把原文移到 `20-raw/`。这不是简单复制，而是更新既有页面·交叉引用·规范化·矛盾标注。
 
-## 사용법
+## 用法
 
 ```text
-/compile                                   (inbox의 미컴파일 소스 전부)
-/compile 10-inbox/2026-06-14-article.md    (특정 소스만)
+/compile                                   (inbox 中全部未编译源)
+/compile 10-inbox/2026-06-14-article.md    (仅特定源)
 ```
 
-## 실행 흐름
+## 执行流程
 
-### Step 1: 현황 + 미컴파일 식별
-- `30-wiki/index.md`(루트 라우터)·`log.md`로 기존 주제·페이지를 파악.
-- `10-inbox/`의 소스 = 미컴파일 (인자가 있으면 그 소스만).
-- 소스가 어느 **주제(topic)**인지 정한다 (기존 재사용 우선). 새 주제면 `30-wiki/{topic}/` 골격 생성: `index.md`(주제 라우터)·`aliases.md`·`overview.md`·`indexes/`·`sources/`·`entities/`·`concepts/`.
+### Step 1: 现状 + 识别未编译
+- 用 `30-wiki/index.md`（根路由器）·`log.md` 掌握既有主题·页面。
+- `10-inbox/` 中的源 = 未编译（若有参数则仅处理该源）。
+- 确定该源属于哪个**主题(topic)**（优先复用既有）。若是新主题则创建 `30-wiki/{topic}/` 骨架：`index.md`（主题路由器）·`aliases.md`·`overview.md`·`indexes/`·`sources/`·`entities/`·`concepts/`。
 
-### Step 2: 소스 읽기 + 핵심 (소크라테스 게이트)
-- 소스를 읽는다. 이미지/PDF면 `conventions.md §12` 2단계 읽기.
-- 핵심 takeaway 3~5개를 공유하고 **모순·약점·근거 부족을 짚어 되묻는다** (배치 모드면 생략). 다듬어진 결론만 위키로 승격.
+### Step 2: 读取源 + 核心 (苏格拉底门控)
+- 读取源。若是图片/PDF 则按 `conventions.md §12` 两步读取。
+- 分享 3~5 个核心 takeaway，并**指出矛盾·弱点·依据不足来反问**（批处理模式则省略）。只有打磨后的结论才提升为维基。
 
-### Step 3: 소스요약 페이지
-- `40-templates/source.md` → `30-wiki/{topic}/sources/{date-slug}.md`.
-- frontmatter `source_file`은 **이동 후 경로**(`20-raw/{파일명}`)로 기록(Step 7에서 이동). `summary` 필수(인덱스 재사용).
+### Step 3: 源摘要页面
+- `40-templates/source.md` → `30-wiki/{topic}/sources/{date-slug}.md`。
+- frontmatter `source_file` 记录**移动后路径**（`20-raw/{文件名}`）（在 Step 7 移动）。`summary` 必填（索引复用）。
 
-### Step 4: 엔티티/개념 페이지 (정본화 + 중복 점검)
-- 소스에 등장한 인물·조직·개념마다 페이지 생성/갱신. **여러 소스가 쌓이면 전역 ≥2회 등장만 페이지 승격**, 1회는 상위 페이지 plain text 씨앗(질문 시 lazy). 단일 소스면 핵심 엔티티 중심.
-- **생성 전 중복 점검**: 해당 타입 인덱스(`indexes/{type}.md`) + `aliases.md`로 동일 표기/별칭 점검 → 이미 있으면 **새로 만들지 말고 갱신·병합**(정본명·aka·aliases 갱신).
-- **정본명(`canonical`) 결정** → `aliases.md`에 별칭 등재 (라우팅 키).
-- 모든 사실 주장 뒤 `[[sources/...]]` provenance(`extracted`/`inferred`/`ambiguous`). 출처 없는 추론은 `(추론)`. 동명은 `[[type/이름|이름]]` 경로 링크 + 라우터 충돌 노트.
-- `[[링크]]`는 **대상 페이지가 실제 있을 때만**, 없으면 plain text(씨앗).
+### Step 4: 实体/概念页面 (规范化 + 重复检查)
+- 为源中出现的人物·组织·概念逐一创建/更新页面。**当多个源累积后，仅全局出现 ≥2 次才提升为页面**，1 次则作为上级页面的 plain text 种子（提问时 lazy）。若是单一源则以核心实体为中心。
+- **创建前做重复检查**：用该类型索引（`indexes/{type}.md`）+ `aliases.md` 检查相同写法/别名 → 若已存在则**不要新建，而是更新·合并**（更新规范名·aka·aliases）。
+- **决定规范名（`canonical`）** → 在 `aliases.md` 登记别名（路由键）。
+- 每个事实主张后附 `[[sources/...]]` provenance（`extracted`/`inferred`/`ambiguous`）。无出处的推断标 `(推断)`。同名用 `[[type/名称|名称]]` 路径链接 + 路由器冲突注记。
+- `[[链接]]` **仅在目标页面实际存在时**才用，否则用 plain text（种子）。
 
-### Step 5: 인덱스·종합 갱신 (라우팅의 핵심)
-- **타입 인덱스** `indexes/{type}.md`에 신규/변경 페이지 줄 등재 — 줄 description은 페이지 `summary` 재사용. **샤드가 ≤50K 토큰 넘으면 정본명 첫 글자로 재분할**(한글은 둘째 샤드).
-- **주제 라우터** `{topic}/index.md`: 타입별 **개수·동명 충돌 노트·푸터 합계만** 갱신(엔티티 줄은 라우터에 넣지 않음).
-- **루트 라우터** `30-wiki/index.md`: 새 주제면 주제 줄 추가.
-- `overview.md` 갱신(큰 그림).
+### Step 5: 索引·综合更新 (路由的核心)
+- 在**类型索引** `indexes/{type}.md` 登记新增/变更页面行 —— 行 description 复用页面 `summary`。**若分片超过 ≤50K token 则按规范名首字母重新分片**（非拉丁文进第二分片）。
+- **主题路由器** `{topic}/index.md`：仅更新各类型的**数量·同名冲突注记·页脚合计**（实体行不放进路由器）。
+- **根路由器** `30-wiki/index.md`：若是新主题则添加主题行。
+- 更新 `overview.md`（全局图景）。
 
 ### Step 6: self-audit
-- 만든 엔티티/개념 페이지 vs 타입 인덱스 등재 = **diff 0** 확인(누락 없음).
-- `tier: auto` 페이지는 `30-wiki/{topic}/auto-generated.md` 대장에 등록(미검수 표시).
+- 确认所创建的实体/概念页面 vs 类型索引登记 = **diff 0**（无遗漏）。
+- `tier: auto` 页面登记到 `30-wiki/{topic}/auto-generated.md` 总账（标为未审核）。
 
-### Step 7: 원본을 raw로 이동 (보관)
-- `mv 10-inbox/{파일} 20-raw/{파일}`. **파일명 유지**(Step 3의 `source_file` 링크 보존).
-- inbox에 남은 = 미컴파일, raw에 있는 = 컴파일 완료.
-- 동명 충돌·이동 실패 시 덮어쓰지 말고 알린다.
+### Step 7: 把原文移到 raw (保管)
+- `mv 10-inbox/{文件} 20-raw/{文件}`。**保留文件名**（保住 Step 3 的 `source_file` 链接）。
+- 留在 inbox 的 = 未编译，在 raw 的 = 编译完成。
+- 同名冲突·移动失败时不要覆盖，而是通知。
 
-### Step 8: 로그 + 커밋
-- `log.md`에 `## [YYYY-MM-DD] compile | {제목 또는 규모}` + 건드린 페이지 목록.
-- git repo면 `git add -A && git commit`.
+### Step 8: 日志 + 提交
+- 在 `log.md` 写 `## [YYYY-MM-DD] compile | {标题或规模}` + 改动页面列表。
+- 若是 git repo 则 `git add -A && git commit`。
 
-## 출력 형식
+## 输出格式
 
 ```text
-✅ compile 완료: {제목/규모}
-주제: {topic}
-- 소스요약: sources/{slug} ×N
-- 엔티티/개념: entities/{...} ×N, concepts/{...} ×M (신규 {a} / 갱신 {b})
-- aliases 등재: {k}건 · 동명 충돌: {n}건
-- 인덱스 갱신: indexes/{type} (샤드 {s})
-- self-audit: 누락 0
-- 원본 이동: 10-inbox → 20-raw/{...}
+✅ compile 完成: {标题/规模}
+主题: {topic}
+- 源摘要: sources/{slug} ×N
+- 实体/概念: entities/{...} ×N, concepts/{...} ×M (新增 {a} / 更新 {b})
+- aliases 登记: {k} 件 · 同名冲突: {n} 件
+- 索引更新: indexes/{type} (分片 {s})
+- self-audit: 遗漏 0
+- 原文移动: 10-inbox → 20-raw/{...}
 ```
 
-## 트리거 경계
+## 触发边界
 
-should-trigger: "위키로 정리해줘", "컴파일", "정제해줘", "inbox 처리해줘", "위키에 반영"
+should-trigger: "整理成维基", "编译", "精炼一下", "处理 inbox", "反映到维基"
 NOT-trigger:
-- "이 자료 수집/넣어줘"(저장만) → `/ingest`
-- "X 알려줘" → `/query`
-- "점검/모순 확인" → `/lint`
-- "원본 고쳐줘" → 금지 (raw 불변)
+- "收集/放入这份资料"（只保存） → `/ingest`
+- "告诉我 X" → `/query`
+- "巡检/检查矛盾" → `/lint`
+- "改一下原文" → 禁止 (raw 不可变)
 
-## 참조
-- `00-system/conventions.md` §4(정본화)·§7(라우터)·§8(샤딩)·§10(lazy/tier)·§14(소크라테스)
-- `40-templates/` — source/entity/concept 템플릿
+## 参考
+- `00-system/conventions.md` §4(规范化)·§7(路由器)·§8(分片)·§10(lazy/tier)·§14(苏格拉底)
+- `40-templates/` — source/entity/concept 模板

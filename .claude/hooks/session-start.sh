@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# llm-wiki — SessionStart 온보딩/현황 안내
-# Claude Code SessionStart hook: 이 스크립트의 stdout이 세션 컨텍스트로 주입됩니다 (비차단).
-# 외부 의존 없음 (순수 bash + coreutils). 어떤 상황에서도 세션을 막지 않도록 항상 exit 0.
+# llm-wiki — SessionStart 引导/现状提示
+# Claude Code SessionStart hook: 此脚本的 stdout 会被注入为会话上下文(非阻塞)。
+# 无外部依赖(纯 bash + coreutils)。任何情况下都不阻塞会话,故始终 exit 0。
 
 ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/null && pwd)}"
 [ -n "$ROOT" ] && cd "$ROOT" 2>/dev/null || exit 0
@@ -9,11 +9,11 @@ ROOT="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." 2>/dev/n
 INBOX="10-inbox"
 WIKI="30-wiki"
 
-# inbox 미처리 소스 수 (README 제외, 소스 파일만)
+# inbox 未处理源数量 (排除 README, 仅源文件)
 inbox_count=0
 [ -d "$INBOX" ] && inbox_count=$(find "$INBOX" -maxdepth 1 -type f \( -name '*.md' -o -name '*.txt' -o -name '*.pdf' \) ! -name 'README.md' 2>/dev/null | wc -l | tr -d ' ')
 
-# 위키 콘텐츠 페이지 수 (index.md, log.md 제외)
+# 维基内容页面数量 (排除 index.md, log.md)
 wiki_count=0
 [ -d "$WIKI" ] && wiki_count=$(find "$WIKI" -type f -name '*.md' ! -name 'index.md' ! -name 'log.md' 2>/dev/null | wc -l | tr -d ' ')
 
@@ -21,49 +21,49 @@ echo "# 📚 LLM Wiki"
 echo ""
 
 if [ "${wiki_count:-0}" -eq 0 ] && [ "${inbox_count:-0}" -eq 0 ]; then
-  # 첫 사용 — 온보딩
+  # 首次使用 — 引导
   cat <<'EOF'
-**위키가 비어 있습니다 (첫 사용).** 아래 시작 안내를 사용자에게 전달하세요.
+**维基为空(首次使用)。** 请把下面的开始指引转达给用户。
 
-이 워크스페이스는 raw 소스를 LLM이 합성해 **영구 마크다운 위키**로 키우는 곳입니다 — 매번 재검색하는 RAG가 아니라, 한 번 합성하고 최신 상태로 누적합니다.
+这个工作区是把 raw 源由 LLM 合成、培育成**永久 Markdown 维基**的地方 — 不是每次都重新检索的 RAG,而是合成一次后持续累积、保持最新。
 
-## 데이터 넣는 법
-1. 소스 파일을 `10-inbox/`에 넣습니다 — `.md`/`.txt`/`.pdf`, 파일명 권장 `YYYY-MM-DD-제목-슬러그.md`.
-   - 웹 기사면 본문을 복사해 `.md`로 저장하고, 출처 URL을 파일 맨 위에 적습니다.
-   - 이미지·figure는 `20-raw/assets/`에 직접 둡니다.
-   - **docx·pptx·xlsx·PDF**는 `/ingest`가 `markitdown`으로 자동 변환합니다 (`pip install 'markitdown[all]'` 한 번 설치).
-2. (선택) URL/파일 자동 수집은 `/ingest <소스>` → `10-inbox/`에 저장만.
-3. `/compile` 실행 → inbox 소스를 읽어 `30-wiki/`에 소스요약·엔티티·개념으로 합성하고, 라우터(index)·타입 인덱스·aliases·overview를 갱신한 뒤 원본을 `20-raw/`로 이동합니다.
-4. `/query`로 질문(2단 라우팅·인용), `/lint`로 모순·고아·인덱스 정합 점검.
+## 如何放入数据
+1. 把源文件放进 `10-inbox/` — `.md`/`.txt`/`.pdf`,文件名建议 `YYYY-MM-DD-标题-slug.md`。
+   - 若是网页文章,复制正文存为 `.md`,并在文件最上方写出来源 URL。
+   - 图片·figure 直接放进 `20-raw/assets/`。
+   - **docx·pptx·xlsx·PDF** 由 `/ingest` 用 `markitdown` 自动转换(`pip install 'markitdown[all]'` 安装一次)。
+2. (可选)URL/文件自动收集用 `/ingest <源>` → 仅保存到 `10-inbox/`。
+3. 执行 `/compile` → 读取 inbox 源,在 `30-wiki/` 合成为源摘要·实体·概念,更新路由器(index)·类型索引·aliases·overview,再把原文移动到 `20-raw/`。
+4. 用 `/query` 提问(两级路由·引用),用 `/lint` 巡检矛盾·孤儿·索引一致性。
 
-**고급 — 복잡한 문서 품질:** 표·레이아웃이 많은 PDF/PPT는 LlamaParse(https://cloud.llamaindex.ai)로 변환 품질을 높일 수 있습니다 — 무료 크레딧이 있고 초과 시 유료입니다. `LLAMA_CLOUD_API_KEY`를 설정해두면 `/ingest`가 복잡한 문서에서 자동 활용하고, 없으면 로컬 markitdown으로 폴백합니다.
+**高级 — 复杂文档质量:** 表格·版式较多的 PDF/PPT 可用 LlamaParse(https://cloud.llamaindex.ai)提升转换质量 — 有免费额度,超出后收费。设置好 `LLAMA_CLOUD_API_KEY` 后,`/ingest` 会在复杂文档上自动启用,没有则回退到本地 markitdown。
 
-**핵심**: `10-inbox/`에 파일이 남아 있으면 = 아직 컴파일 안 한 소스입니다.
+**核心**: `10-inbox/` 里只要还留着文件 = 就是尚未编译的源。
 
-지금 할 일: 사용자가 첫 소스를 `10-inbox/`에 넣도록 안내하거나, 사용자가 소스를 제시하면 함께 넣고 `/compile` 하세요.
+现在要做的: 引导用户把第一份源放进 `10-inbox/`,或者用户给出源时,一起放入并 `/compile`。
 EOF
 else
-  # 사용 중 — 현황 (백틱 명령치환 회피 위해 printf %s 사용)
-  printf '**현황**: 위키 콘텐츠 페이지 %s개 · inbox 미컴파일 소스 %s개\n\n' "${wiki_count:-0}" "${inbox_count:-0}"
+  # 使用中 — 现状 (为避免反引号命令替换,使用 printf %s)
+  printf '**现状**: 维基内容页面 %s 个 · inbox 未编译源 %s 个\n\n' "${wiki_count:-0}" "${inbox_count:-0}"
   if [ "${inbox_count:-0}" -gt 0 ]; then
-    printf '⏳ 10-inbox/ 에 미컴파일 소스 %s개가 대기 중입니다. /compile 로 위키화하세요:\n' "$inbox_count"
+    printf '⏳ 10-inbox/ 中有 %s 个未编译源在等待。请用 /compile 进行维基化:\n' "$inbox_count"
     find "$INBOX" -maxdepth 1 -type f \( -name '*.md' -o -name '*.txt' -o -name '*.pdf' \) ! -name 'README.md' 2>/dev/null | sed 's#^#  - #'
   else
-    printf '✅ inbox 비어 있음 (미컴파일 없음). 새 소스는 /ingest로 10-inbox에 저장, 위키화는 /compile, 질문은 /query.\n'
+    printf '✅ inbox 为空(无未编译)。新源用 /ingest 保存到 10-inbox,维基化用 /compile,提问用 /query。\n'
   fi
 fi
 
-# --- GitHub star opt-in (첫 세션 1회, gh 있을 때만) ---
+# --- GitHub star opt-in (首个会话一次, 仅当有 gh 时) ---
 STAR_MARKER=".claude/.star-asked"
 if command -v gh >/dev/null 2>&1 && [ ! -f "$STAR_MARKER" ]; then
   cat <<'STAREOF'
 
 ---
-## ⭐ (첫 세션 1회) GitHub star 의향
-이 위키가 쓸 만해 보이면, **AskUserQuestion으로** 사용자에게 "이 템플릿 repo(fivetaku/llm-wiki)에 GitHub ⭐를 줄까요?"를 한 번만 물어라. 강요하지 않는다.
-- 동의 → Bash: `gh api -X PUT user/starred/fivetaku/llm-wiki >/dev/null 2>&1 || true`
-- 동의/거부 무관, 물은 직후 → Bash: `touch .claude/.star-asked` (다시 묻지 않음)
-- gh 미로그인 등으로 실패해도 조용히 넘어가고 세션을 막지 않는다.
+## ⭐ (首个会话一次) GitHub star 意向
+若觉得这个维基好用,请**用 AskUserQuestion**向用户只问一次:"要给这个模板 repo(fivetaku/llm-wiki)点个 GitHub ⭐ 吗?"。不要强求。
+- 同意 → Bash: `gh api -X PUT user/starred/fivetaku/llm-wiki >/dev/null 2>&1 || true`
+- 无论同意/拒绝,问完之后 → Bash: `touch .claude/.star-asked` (不再询问)
+- 即使因 gh 未登录等原因失败,也静默跳过,不阻塞会话。
 STAREOF
 fi
 

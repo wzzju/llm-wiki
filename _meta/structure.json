@@ -2,24 +2,24 @@
   "$schema": "https://json-schema.org/draft-07/schema#",
   "name": "LLM Wiki",
   "version": "1.0.0",
-  "description": "raw 소스를 LLM이 직접 합성·유지하는 영구 마크다운 위키로 키우는 워크스페이스. Karpathy LLM Wiki 패턴(raw/wiki/schema 3-layer, ingest/query/lint) 구현. 외부 스킬 무의존 자족 설계.",
+  "description": "将 raw 源由 LLM 直接合成·维护、培育为永久 markdown 维基的工作区。实现 Karpathy LLM Wiki 模式（raw/wiki/schema 3-layer, ingest/query/lint）。无外部技能依赖的自足设计。",
   "tier": "standard",
   "base_archetype": "knowledge-base",
   "folders": [
-    { "path": ".claude/commands", "purpose": "ingest/query/lint 슬래시 커맨드를 보관합니다.", "required": true },
-    { "path": "00-system", "purpose": "페이지 규약·frontmatter 스펙·네이밍·검색 규칙 정본(conventions.md).", "required": true },
-    { "path": "10-inbox", "purpose": "새 소스 진입점(inbox 레이어). 미처리 소스 대기열. /ingest가 처리 후 20-raw로 이동.", "required": true },
-    { "path": "20-raw", "purpose": "처리 완료 원본(raw 레이어, 불변). LLM 읽기 전용. inbox에서 이동돼 옴. assets/에 이미지·PDF.", "required": true },
-    { "path": "30-wiki", "purpose": "LLM이 생성·유지하는 위키 페이지(wiki 레이어). index.md·log.md + {topic}/{sources,entities,concepts}.", "required": true },
-    { "path": "40-templates", "purpose": "source/entity/concept 페이지 타입 템플릿.", "required": true },
-    { "path": "50-queries", "purpose": "/query 결과 파일백(비교·분석 — 탐색의 누적).", "required": false },
-    { "path": "90-archive", "purpose": "폐기·대체된 페이지.", "required": false }
+    { "path": ".claude/commands", "purpose": "保管 ingest/query/lint 斜杠命令。", "required": true },
+    { "path": "00-system", "purpose": "页面规约·frontmatter 规范·命名·检索规则的正本（conventions.md）。", "required": true },
+    { "path": "10-inbox", "purpose": "新源入口（inbox 层）。未处理源队列。/ingest 处理后移至 20-raw。", "required": true },
+    { "path": "20-raw", "purpose": "处理完成的原始文件（raw 层，不可变）。LLM 只读。由 inbox 移入。assets/ 中存放图片·PDF。", "required": true },
+    { "path": "30-wiki", "purpose": "LLM 生成·维护的维基页面（wiki 层）。index.md·log.md + {topic}/{sources,entities,concepts}。", "required": true },
+    { "path": "40-templates", "purpose": "source/entity/concept 页面类型模板。", "required": true },
+    { "path": "50-queries", "purpose": "/query 结果回填（对比·分析 — 探索的累积）。", "required": false },
+    { "path": "90-archive", "purpose": "废弃·被替换的页面。", "required": false }
   ],
   "commands": [
-    { "name": "ingest", "description": "자료(URL·파일·텍스트)를 10-inbox에 저장만. 위키화 안 함. '넣어줘', '수집해줘'. 단, 위키화는 compile.", "tier": "lite" },
-    { "name": "compile", "description": "inbox 소스를 위키로 합성(소스요약→엔티티/개념→정본화→라우터/인덱스/overview→raw 이동). '위키로 정리해줘', '컴파일'. 단, 수집은 ingest, 질문은 query.", "tier": "standard" },
-    { "name": "query", "description": "2단 라우팅(Route→Search)으로 회수·인용 합성, 가치 있는 답은 50-queries 파일백. 'X 뭐 알아?', '비교해줘'. 단, 위키화는 compile.", "tier": "lite" },
-    { "name": "lint", "description": "모순·고아·인덱스/라우터 정합·tier·갭 점검 후 리포트+수정. '점검해줘', '인덱스 맞나'. 단, 위키화는 compile.", "tier": "standard" }
+    { "name": "ingest", "description": "仅将资料（URL·文件·文本）保存到 10-inbox。不做维基化。'放进去', '收集一下'。但维基化用 compile。", "tier": "lite" },
+    { "name": "compile", "description": "将 inbox 源合成为维基（源摘要→实体/概念→规范化→路由器/索引/overview→移至 raw）。'整理成维基', '编译'。但收集用 ingest，提问用 query。", "tier": "standard" },
+    { "name": "query", "description": "以两段路由（Route→Search）召回·引用合成，有价值的答案回填到 50-queries。'X 知道什么？', '对比一下'。但维基化用 compile。", "tier": "lite" },
+    { "name": "lint", "description": "巡检矛盾·孤儿·索引/路由器一致性·tier·缺口后报告+修正。'巡检一下', '索引对不对'。但维基化用 compile。", "tier": "standard" }
   ],
   "scale_modes": ["lite", "standard", "full"],
   "harness_type": "basic",
