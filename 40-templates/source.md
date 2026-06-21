@@ -13,7 +13,7 @@ provenance: extracted       # extracted | inferred | ambiguous | web-enriched
 
 # {源原标题}
 
-**TL;DR:** 一段核心摘要。(frontmatter `summary` 会被复用为 `sources/index` 的条目。)
+**TL;DR:** 一段核心摘要。（frontmatter 中的 `summary` 字段会直接复用为 `sources/index` 的索引条目。）
 
 ## Key claims
 - 核心主张 1

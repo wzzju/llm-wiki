@@ -6,7 +6,7 @@ description: "用于向维基提问、查询已知内容、比较/分析/综合�
 
 向维基提问，召回相关页面并附引用进行合成。好的答案不会只散落在聊天里，而是回写到 `50-queries/` 累积起来。
 
-**Phase A(Route) 只用小文件（路由器+aliases，~2K token）决定"打开哪里"，仅在 Phase B(Search) 才读取分片·页面** —— 路由绝不读取分片，从而保住分片带来的 token 节省。正本：`conventions.md §9`。
+**Phase A(Route) 只用小文件（路由器+aliases，~2K token）决定"打开哪里"，仅在 Phase B(Search) 才读取分片·页面** —— 路由阶段绝不读取分片，以此保全分片机制带来的 token 节省效果。正本：`conventions.md §9`。
 
 ## 用法
 
@@ -18,7 +18,7 @@ description: "用于向维基提问、查询已知内容、比较/分析/综合�
 
 ## Phase A — ROUTE (不读页面)
 
-- **A1. 解析** —— 从问题中提取**实体 N 个** + **类型意图**（entity/concept/source）+ **运算**（简单查询 / 比较 / 综合·探索）。若模糊则用一行反问后继续。
+- **A1. 解析** —— 从问题中提取**实体 N 个** + **类型意图**（entity/concept/source）+ **运算**（简单查询 / 比较 / 综合·探索）。若问题模糊，则先用一句话反问，再继续。
 - **A2. 规范化(normalize)** —— 读取 `30-wiki/{topic}/aliases.md`，把每个写法换成规范名（例如 "Parasite"→`寄生虫`）。
 - **A3. 分支**：
   - **若有 `.rag/` 且嵌入密钥有效 → 路径 1（混合检索，首选）：** 用 `collections.json` routing 按意图→集合选择 → `search.py "{问题}" --type {集合} --k 8 --json` → 对返回的 `page` 路径 **Read**（无需路由器·分片）→ 按分数定优先级。失败（无密钥·429·错误）时**静默 fallback 到路径 2**。
@@ -29,7 +29,7 @@ description: "用于向维基提问、查询已知内容、比较/分析/综合�
 - **B1. 分片召回** —— 只打开 Route 指定的**分片**（禁止加载其他分片）。用各行 description·关键词筛选候选页面。宏观·探索类问题先读 `overview.md` 再往下。
 - **B2. tiered read** —— 用候选 frontmatter `summary` 收窄，只展开相关页面的**正文**。正文 `[[链接]]` **只跟一跳**做补强（禁止无限扩展）。
 - **B3. 扩大检索阶梯(命中失败时)** —— 在预期分片中没找到时：(a) 同类型的**兄弟分片**（防止规范化失败导致首字母误判） → (b) 对 `30-wiki/{topic}/` 全体 **grep** → (c) lazy 生成或「没有」。
-- **B4. lazy 生成** —— grep 也找不到时：若 `20-raw/`·`sources/` 里**有种子**，则用 raw+网络即时生成（`tier: auto`, `provenance: web-enriched`） → 登记到 `auto-generated.md` 总账 + 首字母分片（路由器仅更新数量）。**没有种子就不要编造，回答「维基中没有 —— 需要 /ingest」。**
+- **B4. lazy 生成** —— grep 也找不到时：若 `20-raw/`·`sources/` 里**有种子**，则用 raw+网络即时生成（`tier: auto`, `provenance: web-enriched`） → 登记到 `auto-generated.md` 总账 + 首字母分片（路由器仅更新数量）。**没有种子就不要编造，回答「维基中无相关内容 —— 请先 /ingest」。**
 - **B5. 仅凭依据作答** —— 只用召回页面的内容，每个主张附 `[[页面]]` 引用 + provenance。无依据则不编造。
 - **B6. 复利回流** —— 若有探索·综合价值，则在 `50-queries/{slug}.md` 以 `type: query` 保存 + 在相关页面连上 `[[链接]]` + 主题路由器「已保存查询」节 + 更新 `log.md`（`## [日期] query | {摘要}`）。单纯短答不保存。
 

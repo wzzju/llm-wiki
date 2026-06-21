@@ -18,18 +18,18 @@ description: "用于把 inbox 源精炼、维基化、整理、编译为维基�
 ### Step 1: 现状 + 识别未编译
 - 用 `30-wiki/index.md`（根路由器）·`log.md` 掌握既有主题·页面。
 - `10-inbox/` 中的源 = 未编译（若有参数则仅处理该源）。
-- 确定该源属于哪个**主题(topic)**（优先复用既有）。若是新主题则创建 `30-wiki/{topic}/` 骨架：`index.md`（主题路由器）·`aliases.md`·`overview.md`·`indexes/`·`sources/`·`entities/`·`concepts/`。
+- 确定该源属于哪个**主题(topic)**（优先复用既有主题）。若是新主题，则初始化 `30-wiki/{topic}/` 目录结构：`index.md`（主题路由器）·`aliases.md`·`overview.md`·`indexes/`·`sources/`·`entities/`·`concepts/`。
 
 ### Step 2: 读取源 + 核心 (苏格拉底门控)
 - 读取源。若是图片/PDF 则按 `conventions.md §12` 两步读取。
-- 分享 3~5 个核心 takeaway，并**指出矛盾·弱点·依据不足来反问**（批处理模式则省略）。只有打磨后的结论才提升为维基。
+- 分享 3~5 个核心 takeaway，并**就矛盾、弱点、依据不足之处提出质疑**（批处理模式下省略）。只有打磨后的结论才提升为维基。
 
 ### Step 3: 源摘要页面
 - `40-templates/source.md` → `30-wiki/{topic}/sources/{date-slug}.md`。
 - frontmatter `source_file` 记录**移动后路径**（`20-raw/{文件名}`）（在 Step 7 移动）。`summary` 必填（索引复用）。
 
 ### Step 4: 实体/概念页面 (规范化 + 重复检查)
-- 为源中出现的人物·组织·概念逐一创建/更新页面。**当多个源累积后，仅全局出现 ≥2 次才提升为页面**，1 次则作为上级页面的 plain text 种子（提问时 lazy）。若是单一源则以核心实体为中心。
+- 为源中出现的人物·组织·概念逐一创建/更新页面。**当多个源累积后，仅全局出现 ≥2 次才提升为页面**，只出现 1 次则作为上级页面的 plain text 种子（查询时按需 lazy 生成）。若是单一源，则以核心实体为中心。
 - **创建前做重复检查**：用该类型索引（`indexes/{type}.md`）+ `aliases.md` 检查相同写法/别名 → 若已存在则**不要新建，而是更新·合并**（更新规范名·aka·aliases）。
 - **决定规范名（`canonical`）** → 在 `aliases.md` 登记别名（路由键）。
 - 每个事实主张后附 `[[sources/...]]` provenance（`extracted`/`inferred`/`ambiguous`）。无出处的推断标 `(推断)`。同名用 `[[type/名称|名称]]` 路径链接 + 路由器冲突注记。
@@ -46,7 +46,7 @@ description: "用于把 inbox 源精炼、维基化、整理、编译为维基�
 - `tier: auto` 页面登记到 `30-wiki/{topic}/auto-generated.md` 总账（标为未审核）。
 
 ### Step 7: 把原文移到 raw (保管)
-- `mv 10-inbox/{文件} 20-raw/{文件}`。**保留文件名**（保住 Step 3 的 `source_file` 链接）。
+- `mv 10-inbox/{文件} 20-raw/{文件}`。**保留文件名**（确保 Step 3 的 `source_file` 链接稳定）。
 - 留在 inbox 的 = 未编译，在 raw 的 = 编译完成。
 - 同名冲突·移动失败时不要覆盖，而是通知。
 
@@ -63,7 +63,7 @@ description: "用于把 inbox 源精炼、维基化、整理、编译为维基�
 - 实体/概念: entities/{...} ×N, concepts/{...} ×M (新增 {a} / 更新 {b})
 - aliases 登记: {k} 件 · 同名冲突: {n} 件
 - 索引更新: indexes/{type} (分片 {s})
-- self-audit: 遗漏 0
+- self-audit: 无遗漏
 - 原文移动: 10-inbox → 20-raw/{...}
 ```
 

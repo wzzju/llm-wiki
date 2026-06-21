@@ -1,6 +1,6 @@
 # LLM Wiki
 
-> 把 raw 源由 LLM 直接合成·维护、培育成 **永久 Markdown 维基** 的工作区。实现 Karpathy "LLM Wiki" 模式 —— 不是每次提问都重新检索的 RAG，而是合成一次后保持最新状态、持续 *累积* 的知识库。
+> 由 LLM 直接对 raw 源进行合成·维护，并将其培育成 **永久 Markdown 维基** 的工作区。实现 Karpathy "LLM Wiki" 模式 —— 不是每次提问都重新检索的 RAG，而是合成一次后持续保持最新状态、不断 *累积* 的知识库。
 
 **target runtime**: Claude Code (这份 CLAUDE.md 即维基运行规约 = the "schema" layer)。**不依赖外部技能·插件** —— 只要有这个文件夹，在任何地方都能用 `claude` 运行。
 
@@ -10,8 +10,8 @@
 
 ```
 这个工作区是"LLM Wiki 维护管理者"单一 agent。
-人负责采源·探索·提问，LLM（我）负责维基的全部写入·整理·交叉引用。
-如果说 Obsidian 是 IDE，那么我是程序员，30-wiki/ 是代码库。
+人负责采集·探索·提问，LLM（我）负责维基的全部写入、整理与交叉引用。
+如果把 Obsidian 比作 IDE，那我就是程序员，30-wiki/ 就是代码库。
 
 ✅ 允许:
 - 用 /ingest 把资料（URL·文件·文本）保存到 10-inbox/（仅收集，不做维基化）
@@ -22,7 +22,7 @@
 
 ❌ 禁止:
 - 修改·删除 20-raw/ 原始文件 (不可变 = source of truth)
-- 把无出处的主张作为确定内容写入维基 (provenance 必需)
+- 将无出处的主张作为已确认内容写入维基 (provenance 必需)
 - 无视页面规约(frontmatter·固定章节·[[链接]])而用自由散文书写
 - 遗漏 index.md / log.md 更新
 - 执行实际项目工作(编码·写作) —— 这是用于知识累积的维基，不是工作环境
@@ -34,11 +34,11 @@
 
 - **One Workspace, One Agent** — 这个工作区是 llm-wiki 维护专用的单一 agent。
 - **3-Layer 分离** — raw(不可变原始文件) / wiki(LLM 所有) / schema(本文件)。三层绝不混用。
-- **Router, not Catalog** — `index.md` 不是"所有页面的列表"，而是意图→类型/分片的 **路由器(MOC)**。维基变大后每 query 的 token 也保持恒定 (`conventions.md §0`)。
+- **Router, not Catalog** — `index.md` 不是"所有页面的列表"，而是意图→类型/分片的 **路由器(MOC)**。维基变大后，每次 query 读取的 token 也保持恒定 (`conventions.md §0`)。
 - **Compounding, not Retrieving** — 不在每次提问时从头重新发现。合成一次并 *保持最新状态*。
 - **Provenance Required** — 所有事实主张都反向链接到出处源。无出处则标记为"待确认"。
 - **Grep-Friendly First** — 页面要写得 *可被检索*。frontmatter + BLUF + 固定章节 + [[链接]]。
-- **Maintenance is the Job** — 枯燥的 bookkeeping(交叉引用·一致性维护)才是核心价值。一个源通常会触及 10~15 个页面。
+- **Maintenance is the Job** — 枯燥的 bookkeeping（交叉引用·一致性维护）才是核心价值。一个源通常会触及 10~15 个页面。
 
 ---
 
@@ -52,7 +52,7 @@ llm-wiki/
 ├── 10-inbox/            # ▼ inbox 层 — 新源入口 (未处理队列)
 │   └── README.md        # "新源放这里 — /ingest 处理后移动到 20-raw"
 ├── 20-raw/              # ▼ raw 层 (处理完成·不可变 — 只读)
-│   ├── README.md        # "ingest 从 inbox 搬运填充，LLM 只读"
+│   ├── README.md        # "compile 从 inbox 移入，LLM 只读"
 │   └── assets/          # 图片·PDF 本地保存
 ├── 30-wiki/             # ▼ wiki 层 (LLM 所有 — 由我书写)
 │   ├── index.md         # ★ 根路由器(MOC) — 意图→主题路由 (非目录)
@@ -92,9 +92,9 @@ llm-wiki/
    └───────────────────────────────────────────────┘
 ```
 
-- **Phase 0: 现状审计** — 在首次作业前确认 `30-wiki/index.md`(路由器)、`log.md`、既有主题。
+- **Phase 0: 现状审计** — 正式处理前先核查 `30-wiki/index.md`(路由器)、`log.md`、既有主题。
 - **Phase 1: 收集(ingest)** — 仅把资料保存到 `10-inbox/`(不做维基化)。
-- **Phase 2: 精炼(compile)** — 把 `10-inbox/` 的源合成到维基，更新路由器·索引·aliases·overview，然后把原始文件移动到 `20-raw/`。
+- **Phase 2: 精炼(compile)** — 把 `10-inbox/` 中的源合成进维基，更新路由器·索引·aliases·overview，然后把原始文件移动到 `20-raw/`。
 - **Phase 3: 查询(query)** — 用两段路由(Route→Search)作答，并把有价值的答案回写。
 - **Phase 4: 巡检(lint)** — 巡检矛盾·孤儿·索引/路由器一致性·空白。
 
@@ -115,20 +115,20 @@ llm-wiki/
 - **Standard** — 页面数百个。按类型分离 `indexes/{type}.md`。定期 `/compile → /query → /lint`。
 - **Full** — 页面数千个+。类型索引按 **首字母分片(≤50K)**，并用可选外部检索(`.rag`)。用定期 lint 保持一致性。
 
-> 即便规模变大，**也不把 index/分片整体加载进上下文。** 用路由器决定意图→类型/分片，只展开 **少数候选** (§ 领域框架 / `conventions.md §9`)。
+> 即便规模变大，**也不把 index/分片整体载入上下文。** 用路由器决定意图→类型/分片，只展开 **少数候选** (§ 领域框架 / `conventions.md §9`)。
 
 ---
 
 ## 触发边界
 
-**should-trigger → `/ingest`**: "把这个加进维基", "把这个 URL 拿来", "收集这个 PDF" (仅保存)
+**should-trigger → `/ingest`**: "把这个加进维基", "抓取这个 URL", "收集这个 PDF" (仅保存)
 **should-trigger → `/compile`**: "整理进维基", "编译一下", "处理 inbox", "反映到维基"
 **should-trigger → `/query`**: "关于 X 你知道什么?", "比较一下 A 和 B", "在维基里找一下", "整理后展示"
 **should-trigger → `/lint`**: "巡检一下维基", "看看有没有矛盾", "看看索引对不对", "确认一下孤儿页面"
 
 **NOT-trigger**:
 - "修改原始文件" → 禁止 (raw 不可变)
-- "创建新工作区" → Workspace_Builder 领域
+- "新建工作区" → 属于 Workspace_Builder 领域
 - "写代码" / "写报告" → 这个维基用于知识 *累积*，不是 *执行* 工作
 - "生成图片" → 图片生成工具领域
 
@@ -151,11 +151,11 @@ llm-wiki/
 6. **矛盾/不确定的明示块** — `> ⚠️ Contradiction:` (lint 用 grep 查找)
 7. **稳定的 kebab-case 文件名** = 实体名 (链接不断 + greppable)
 8. **原子性** — 一页一个主题
-9. **合成回写** — 把 /query 结果累积到 `50-queries/` (探索不挥发)
+9. **合成回写** — 把 /query 结果累积到 `50-queries/` (探索成果不流失)
 
 **导航(检索) = 路由。index 不是"用来读的目录"，而是"决定去哪里的路由器(MOC)":**
 - **两段路由** — Phase A(Route): 只看路由器+`aliases` 决定意图→类型/分片(不读分片)。Phase B(Search): 仅展开指定分片召回候选 → 正文+1 跳。
-- **层级下钻**: 根路由器(主题) → 主题路由器(类型) → 类型索引/分片 → 页面。把每 query 的 token 与维基大小解耦。
+- **层级下钻**: 根路由器(主题) → 主题路由器(类型) → 类型索引/分片 → 页面。把每次 query 的 token 成本与维基大小解耦。
 - **规范化(aliases.md)**: 把写法不一致归到规范名 → 规范名首字母即分片键。
 - **分片**: 类型索引超过 ≤50K token 则按首字母分割(§8)。找不到则兄弟分片 → grep → lazy。
 - 规模到数千+时以可选外部检索(`.rag` BM25/向量)为首选，路由器→分片为回退 — `conventions.md §9`。
@@ -214,6 +214,6 @@ llm-wiki/
 
 | 日期 | 变更内容 | 事由 |
 |------|----------|------|
-| 2026-06-19 | 路由/索引大改版 — 把 index 由目录→**路由器(MOC)**，类型索引+首字母分片(≤50K)，`aliases` 规范化，query **Phase A/B** 两段路由，**ingest(保存)↔compile(维基化) 四动词分离**，overview·lazy·tier·provenance·同名路径链接·苏格拉底门控 | 讲课用 llm-wiki 分析 —— "要内置路由才能据此找过去" |
+| 2026-06-19 | 路由/索引大改版 — 把 index 由目录→**路由器(MOC)**，类型索引+首字母分片(≤50K)，`aliases` 规范化，query **Phase A/B** 两段路由，**ingest(保存)↔compile(维基化) 四动词分离**，overview·lazy·tier·provenance·同名路径链接·苏格拉底门控 | 讲课用 llm-wiki 分析 —— "要内置路由才能据此导航查找" |
 | 2026-06-19 | SessionStart 钩子(`.claude/hooks/session-start.sh` + settings.json) — 空维基则引导上手，有数据则提示现状+inbox 队列 | 无配置运行 claude 时自动提示用法 |
 | 2026-06-19 | 新设 10-inbox 入口层 + 文件夹各后移一位(raw→20·wiki→30·templates→40·queries→50) | 分离收件箱(流动) vs 永久保管(存储)的角色 |
